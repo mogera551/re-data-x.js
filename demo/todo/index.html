@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../../dist/re-data-x.js"></script>
+
+<myapp-main></myapp-main>
+
+<script type="module">
+import main from "./components/main/main.js";
+import username from "./components/userName/userName.js";
+import listtask from "./components/listTask/listTask.js";
+
+redatax.prefix("myapp").components({ main, username, listtask });
+</script>

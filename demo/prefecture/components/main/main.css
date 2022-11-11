@@ -1,0 +1,48 @@
+table {
+  border-collapse: collapse;
+  border-spacing: 0;  
+}
+
+table td, table th {
+  border: 1px solid black;
+}
+
+.right {
+  text-align: right;
+}
+
+.center {
+  text-align: center;
+}
+
+.left {
+  text-align: left;
+}
+
+.over {
+  color: red;
+}
+
+.under {
+  color: blue;
+}
+
+col.name {
+  width: 150px;
+}
+
+col.capital {
+  width: 150px;
+}
+
+col.population {
+  width: 150px;
+}
+
+col.rate_region {
+  width: 100px;
+}
+
+col.rate {
+  width: 100px;
+}

@@ -1,0 +1,47 @@
+
+<select data-bind="selectedRegion">
+  <option value=""></option>
+  <template data-bind="regions">
+    <option data-bind="value:regions.*;">{regions.*}</option>
+  </template>
+</select>
+
+<table>
+  <colgroup>
+    <col class="name">
+    <col class="capital">
+    <col class="population">
+    <col class="rate_region">
+    <col class="rate">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>都道府県名</th>
+      <th>県庁所在地</th>
+      <th>人口(人)</th>
+      <th>比率：地方（%）</th>
+      <th>比率：全国（%）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <template data-bind="prefectures">
+      <tr>
+        <td class="center">{prefectures.*.name}</td>
+        <td class="center">{prefectures.*.capital}</td>
+        <td class="right" data-bind="class.over:prefectures.*.population|ge,5000000; class.under:prefectures.*.population|lt,1000000;">{prefectures.*.population|localeString}</td>
+        <td class="right">{prefectures.*.populationRateOfRegion|fixed,2}</td>
+        <td class="right">{prefectures.*.populationRate|fixed,2}</td>
+      </tr>
+    </template>
+    <tr data-bind="style.display:selectedRegion|truthy|styleDisplay">
+      <td class="center" colspan="2">地方合計</td>
+      <td class="right">{sumPopulationOfRegion|localeString}</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td class="center" colspan="2">全国合計</td>
+      <td class="right">{sumPopulation|localeString}</td>
+      <td colspan="2"></td>
+    </tr>
+  </tbody>
+</table>
