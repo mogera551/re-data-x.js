@@ -1,5 +1,5 @@
-import css from "../../../../src/tool/importText.js?path=./components/main/main.css";
-import html from "../../../../src/tool/importText.js?path=./components/main/main.html";
+import css from "../../../../dist/importText.js?path=./components/main/main.css";
+import html from "../../../../dist/importText.js?path=./components/main/main.html";
 import allPrefectures from "../../prefectures.js";
 
 class ViewModel {

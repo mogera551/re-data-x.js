@@ -1,4 +1,4 @@
-import html from "../../../../src/tool/importText.js?path=./components/userName/userName.html";
+import html from "../../../../dist/importText.js?path=./components/userName/userName.html";
 
 const SymOnNotify = Symbol.for("onNotify");
 

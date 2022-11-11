@@ -1,5 +1,5 @@
-import html from "../../../../src/tool/importText.js?path=./components/listTask/listTask.html";
-import css from "../../../../src/tool/importText.js?path=./components/listTask/listTask.css";
+import html from "../../../../dist/importText.js?path=./components/listTask/listTask.html";
+import css from "../../../../dist/importText.js?path=./components/listTask/listTask.css";
 import Task from "../../Task.js";
 
 class ViewModel {

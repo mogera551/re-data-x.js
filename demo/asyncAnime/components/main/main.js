@@ -1,4 +1,4 @@
-import html from "../../../../src/tool/importText.js?path=./components/main/main.html";
+import html from "../../../../dist/importText.js?path=./components/main/main.html";
 
 const URL_API = "https://animechan.vercel.app/api/quotes/anime";
 class ViewModel {

@@ -1,4 +1,4 @@
-import html from "../../../../src/tool/importText.js?path=./components/main/main.html";
+import html from "../../../../dist/importText.js?path=./components/main/main.html";
 
 const tickets = [
   { id:1, name:"Economy", price: 199.95 },
