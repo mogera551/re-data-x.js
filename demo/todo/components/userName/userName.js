@@ -1,7 +1,5 @@
 import html from "../../../../dist/importText.js?path=./components/userName/userName.html";
 
-const SymOnNotify = Symbol.for("onNotify");
-
 class ViewModel {
   "userName" = Symbol.for("import");
   "lastName" = "";
@@ -15,7 +13,7 @@ class ViewModel {
     this.userName = `${this.lastName} ${this.firstName}`;
   }
 
-  [SymOnNotify](notification) {
+  $onNotify(notification) {
     if (new Set(["lastName", "firstName"]).has(notification.prop)) {
       return { prop:"isComplete" };
     }

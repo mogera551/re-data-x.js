@@ -1,15 +1,6 @@
 import Utils from "../utils.js";
 
 /**
- * @type {Symbol}
- */
-const SymGetValue = Symbol.for("getValue");
-/**
- * @type {Symbol}
- */
-const SymSetValue = Symbol.for("setValue");
-
-/**
  * 
  */
 export default class ViewModelProperty {
@@ -67,7 +58,7 @@ export default class ViewModelProperty {
    * @returns {any}
    */
   static getValue(viewModelProxy, viewModelProperty) {
-    return viewModelProxy[SymGetValue](viewModelProperty.prop, viewModelProperty.indexes, viewModelProperty.path);
+    return viewModelProxy.$getValue(viewModelProperty.prop, viewModelProperty.indexes, viewModelProperty.path);
   }
 
   /**
@@ -77,7 +68,7 @@ export default class ViewModelProperty {
    * @returns {true}
    */
   static setValue(viewModelProxy, viewModelProperty, value) {
-    viewModelProxy[SymSetValue](viewModelProperty.prop, viewModelProperty.indexes, viewModelProperty.path, value);
+    viewModelProxy.$setValue(viewModelProperty.prop, viewModelProperty.indexes, viewModelProperty.path, value);
     return true;
   }
 

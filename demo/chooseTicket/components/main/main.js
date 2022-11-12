@@ -6,8 +6,6 @@ const tickets = [
   { id:3, name:"First Class", price: 1199.99 },
 ];
 
-const SymOnNotify = Symbol.for("onNotify");
-
 class ViewModel {
   "tickets" = tickets;
   "tickets.*";
@@ -27,7 +25,7 @@ class ViewModel {
     this.selectTicketId = "";
   }
 
-  [SymOnNotify]({prop}) {
+  $onNotify({prop}) {
     if (prop === "selectTicketId") {
       return [
         { prop:"selectTicket" },

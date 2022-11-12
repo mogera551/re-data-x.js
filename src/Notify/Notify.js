@@ -1,15 +1,6 @@
 import NotifyData from "./NotifyData.js";
 import { Component } from "../Component/WebComponent.js";
 
-const SymOnNotify = Symbol.for("onNotify");
-const SymSetOfArrayProps = Symbol.for("setOfArrayProps");
-const SymSetOfRelativePropsByProp = Symbol.for("setOfRelativePropsByProp");
-
-/**
- * @type {Symbol}
- */
-const SymDeleteCache = Symbol.for("deleteCache");
-
 export default class {
   /**
    * @type {NotifyData[]}
@@ -68,11 +59,11 @@ export default class {
         /**
          * @type {Set<string>}
          */
-        const setOfArrayProps = viewModelProxy?.[SymSetOfArrayProps] ?? new Set;
+        const setOfArrayProps = viewModelProxy?.$setOfArrayProps ?? new Set;
         /**
          * @type {Map<string,string[]>}
          */
-        const setOfRelativePropsByProp = viewModelProxy?.[SymSetOfRelativePropsByProp] ?? new Set;
+        const setOfRelativePropsByProp = viewModelProxy?.$setOfRelativePropsByProp ?? new Set;
         /**
          * @type {Set<NotifyData>}
          */
@@ -87,10 +78,10 @@ export default class {
         }
         notifications = notifications.filter(notification => !setOfRemoveNotifications.has(notification));
         
-        if (SymOnNotify in viewModelProxy ?? []) {
+        if ("$onNotify" in viewModelProxy ?? []) {
           const addNotifications = 
             Array.from(notifications)
-              .flatMap(notification => viewModelProxy[SymOnNotify](notification))
+              .flatMap(notification => viewModelProxy.$onNotify(notification))
               .filter(notification => notification != null)
               .map(notification => new NotifyData(component, notification.prop, notification?.indexes));
           notifications.push(...addNotifications);
@@ -109,7 +100,7 @@ export default class {
         notifications.push(...addRelativeNotifications);
 
         const setOfNotifications = new Set(notifications.map(notification => notification.path));
-        viewModelProxy[SymDeleteCache](setOfNotifications);
+        viewModelProxy.$deleteCache(setOfNotifications);
         //console.log(component.tagName, Array.from(setOfNotifications).join(","));
         component.binder.update(setOfNotifications, new Set);
       }    

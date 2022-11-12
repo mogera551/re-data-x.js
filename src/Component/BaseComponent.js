@@ -6,8 +6,6 @@ import Stack from "./Stack.js";
 import BoundNode from "../BoundNode/BoundNode.js";
 import Thread from "../Thread/Thread.js";
 
-const SymInit = Symbol.for("init");
-
 /**
  * Componentのベース、HTMLElementを拡張します。
  * 以下の機能を付加する。
@@ -180,7 +178,7 @@ export default class BaseComponent extends HTMLElement {
     Thread.current.asyncProc(async () => {
       const boundNode = BoundNode.create(this.componentForDialog, this);
       boundNode.parse([], this.paramsForDialog);
-      await this.viewModelProxy[SymInit]();
+      await this.viewModelProxy.$init();
       boundNode.init();
       this.view.render();
     }, this, []);
@@ -194,7 +192,7 @@ export default class BaseComponent extends HTMLElement {
     Thread.current.asyncProc(async () => {
       const boundNode = BoundNode.create(null, this);
       boundNode.parse([]);
-      await this.viewModelProxy[SymInit]();
+      await this.viewModelProxy.$init();
       boundNode.init();
       Binder.rootBinder.add(boundNode);
       this.view.render();
@@ -211,7 +209,7 @@ export default class BaseComponent extends HTMLElement {
   async defaultComponentInit() {
     Thread.current.asyncProc(async () => {
       await this.parentComponent.initializePromise;
-      await this.viewModelProxy[SymInit]();
+      await this.viewModelProxy.$init();
       this.view.render();
     }, this, []);
   }
@@ -229,22 +227,6 @@ export default class BaseComponent extends HTMLElement {
       await this.defaultComponentInit();
     }
     this.#initializeResolve(true);
-/*
-    await this.viewModelProxy[SymInit]();
-    if ("dialog" in this.dataset) {
-      const boundNode = BoundNode.create(this.componentForDialog, this);
-      boundNode.parse([], this.paramsForDialog);
-      boundNode.init();
-    } else if (this.parentComponent == null) {
-      const boundNode = BoundNode.create(null, this);
-      boundNode.parse([]);
-      boundNode.init();
-      Binder.rootBinder.add(boundNode);
-    } else {
-      await this.parentComponent.initializePromise;
-    }
-    this.view.render();
-*/
   }
     
   /**

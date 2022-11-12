@@ -28,7 +28,7 @@ class ViewModel {
     return this.prefectures.reduce((sum, pref) => sum + pref.population, 0);
   }
 
-  [Symbol.for("onNotify")]({ prop }) {
+  $onNotify({ prop }) {
     if (prop === "selectedRegion") {
       return [
         { prop:"prefectures" },

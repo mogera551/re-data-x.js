@@ -1,8 +1,5 @@
 import html from "../../../../dist/importText.js?path=./components/main/main.html";
 
-const SymAsyncProc = Symbol.for("asyncProc");
-const SymOnNotify = Symbol.for("onNotify");
-
 const URL_API = "https://api.zipaddress.net/";
 class ViewModel {
   __zipcode = "";
@@ -13,7 +10,7 @@ class ViewModel {
   }
   set "zipcode"(value) {
     this.__zipcode = value;
-    (/^[0-9]{7}$/.test(value)) ? this[SymAsyncProc](this.search, [value]) : (this.result = null);
+    (/^[0-9]{7}$/.test(value)) ? this.$asyncProc(this.search, [value]) : (this.result = null);
   }
   get "address"() {
     return this.result?.code === 200 ? this.result.data.fullAddress : "";
@@ -28,7 +25,7 @@ class ViewModel {
     this.result = await response.json();
   }
 
-  [SymOnNotify]({prop}) {
+  $onNotify({prop}) {
     if (prop === "result") {
       return [
         { prop:"address" },

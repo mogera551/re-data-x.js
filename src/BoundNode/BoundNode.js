@@ -26,8 +26,6 @@ const getDefaultProp = node => {
   }
 }
 
-const SymAddImportProp = Symbol.for("addImportProp");
-
 /**
  * TEMPLATEでループを展開した子ノードの情報
  */
@@ -303,7 +301,7 @@ export default class BoundNode {
         });
       } else if (viewModelProxy) {
         // 親コンポーネントがある場合、親コンポーネントのプロパティを参照する
-        component.viewModelProxy[SymAddImportProp](propName); // キャッシュしないようにする
+        component.viewModelProxy.$addImportProp(propName); // キャッシュしないようにする
         Object.defineProperty(component.viewModel, propName, {
           get: () => ViewModelProperty.getValue(viewModelProxy, viewModelProp),
           set: value => ViewModelProperty.setValue(viewModelProxy, viewModelProp, value),

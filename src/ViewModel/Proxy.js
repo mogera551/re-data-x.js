@@ -8,79 +8,31 @@ import ViewModelProperty from "./Property.js";
 /**
  * @type {Symbol}
  */
-const SymGetValue = Symbol.for("getValue");
-/**
- * @type {Symbol}
- */
-const SymSetValue = Symbol.for("setValue");
-/**
- * @type {Symbol}
- */
-const SymInit = Symbol.for("init");
-/**
- * @type {Symbol}
- */
-const SymDeleteCache = Symbol.for("deleteCache");
-/**
- * @type {Symbol}
- */
 const SymRaw = Symbol.for("raw");
 /**
  * @type {Symbol}
  */
 const SymIsProxy = Symbol.for("isProxy");
-/**
- * @type {Symbol}
- */
-const SymOnInit = Symbol.for("onInit");
-/**
- * @type {Symbol}
- */
-const SymAsyncProc = Symbol.for("asyncProc");
-/**
- * @type {Symbol}
- */
-const SymNotify = Symbol.for("notify");
-/**
- * @type {Symbol}
- */
-const SymComponent = Symbol.for("component");
-/**
- * @type {Symbol}
- */
-const SymOpenDialog = Symbol.for("openDialog");
-/**
- * @type {Symbol}
- */
-const SymCloseDialog = Symbol.for("closeDialog");
-/**
- * @type {Symbol}
- */
-const SymCancelDialog = Symbol.for("cancelDialog");
-/**
- * @type {Symbol}
- */
-const SymAddImportProp = Symbol.for("addImportProp");
-/**
- * @type {Symbol}
- */
-const SymFindNode = Symbol.for("findNode");
-
-const SymSetOfImportProps = Symbol.for("setOfImportProps");
-const SymSetOfArrayProps = Symbol.for("setOfArrayProps");
-const SymSetOfRelativePropsByProp = Symbol.for("setOfRelativePropsByProp");
-
-
 
 const SET_OF_PROXY_METHODS = new Set([
-  SymGetValue, SymSetValue, SymInit, SymDeleteCache, SymAsyncProc, 
-  SymNotify, SymOpenDialog, SymCloseDialog, SymCancelDialog, SymAddImportProp,
-  SymFindNode
+  "$getValue", "$setValue", "$init", "$deleteCache", "$asyncProc", "$notify",
+  "$openDialog", "$closeDialog", "$cancelDialog", "$addImportProp", "$findNode"
 ]);
 
+/**
+ * @type {Map<string,(handler:Handler)=>any>}
+ */
+const getMemberFuncOfProp = new Map();
+getMemberFuncOfProp.set("$indexes", handler => handler.component.stackIndexes.current);
+getMemberFuncOfProp.set("$component", handler => handler.component);
+getMemberFuncOfProp.set("$setOfImportProps", handler => handler.setOfImportProps);
+getMemberFuncOfProp.set("$setOfArrayProps", handler => handler.setOfArrayProps);
+getMemberFuncOfProp.set("$setOfRelativePropsByProp", handler => handler.setOfRelativePropsByProp);
+
 const SET_OF_PROXY_MEMBERS = new Set([
-  "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$indexes", 
-  SymSetOfImportProps, SymSetOfArrayProps, SymSetOfRelativePropsByProp, SymComponent
+  "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", 
+  "$indexes", "$component", "$setOfImportProps", "$setOfArrayProps", "$setOfRelativePropsByProp",
+  
 ]);
 
 /**
@@ -98,20 +50,6 @@ class Cache extends Map {
     super();
     this.#component = component;
   }
-/*
-  get setOfImportProps() {
-    return this.#setOfImportProps;
-  }
-  set setOfImportProps(value) {
-    this.#setOfImportProps = value;
-  }
-  get component() {
-    return this.#component;
-  }
-  set component(value) {
-    this.#component = value;
-  }
-*/
   has(key) {
     const result = super.has(key);
     this.#debug && !utils.isSymbol(key) && console.log(`cache.has(${key}) = ${result}, ${this.#component?.tagName}`);
@@ -137,7 +75,8 @@ class Cache extends Map {
   set(key, value) {
     // シンボル、*を含むプロパティ、__で始まるプロパティ、$$で始まるプロパティ、メソッドはキャッシュ対象外
     if (utils.isSymbol(key) || key.includes("*") || key.startsWith("__") || key.startsWith("$$")) return;
-    if (this.#component.viewModelProxy[SymSetOfImportProps].has(key)) return;
+    // インポートしたプロパティはキャッシュ対象外
+    if (this.#component.viewModelProxy.$setOfImportProps.has(key)) return;
     if (utils.isFunction(value)) return; 
 
     value = value?.[SymIsProxy] ? value[SymRaw] : value
@@ -278,22 +217,10 @@ class Handler {
     this.importProps.push(...args);
     args.forEach(prop => this.setOfImportProps.add(prop));
   }
-  [SymAddImportProp](...args) {
+  $addImportProp(...args) {
     const receiver = args.pop();
     const target = args.pop();
     Reflect.apply(this.#addImportProp, this, args);
-  }
-  get [SymSetOfImportProps] () {
-    return this.setOfImportProps;
-  }
-  get [SymSetOfArrayProps] () {
-    return this.setOfArrayProps;
-  }
-  get [SymSetOfRelativePropsByProp] () {
-    return this.setOfRelativePropsByProp;
-  }
-  get [SymComponent]() {
-    return  this.component;
   }
 
   /**
@@ -305,7 +232,7 @@ class Handler {
    * @param {Proxy} receiver ViewModelProxy
    * @returns 
    */
-  [SymGetValue](prop, indexes, path, target, receiver) {
+  $getValue(prop, indexes, path, target, receiver) {
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
@@ -329,11 +256,11 @@ class Handler {
    * @param {Object} target ViewModel
    * @param {Proxy} receiver ViewModelProxy
    */
-  [SymSetValue](prop, indexes, path, value, target, receiver) {
+  $setValue(prop, indexes, path, value, target, receiver) {
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
-    const notify = this[SymNotify];
+    const notify = this.$notify;
     const handler = this;
     this.component.stackIndexes.push(indexes, function () {
       Reflect.set(target, prop, value, receiver);
@@ -348,7 +275,7 @@ class Handler {
    * ViewModelから呼ばれることを想定
    * @param  {...any} args [proc, params?, receiver, target]
    */
-  [SymAsyncProc](...args) {
+  $asyncProc(...args) {
     const receiver = args.pop();
     const target = args.pop();
     Thread.current.asyncProc(args[0], receiver, args[1] ?? []);
@@ -362,26 +289,26 @@ class Handler {
    * @param {Array<integer>} indexes 
    * @returns 
    */
-  [SymNotify](prop, indexes) {
+  $notify(prop, indexes) {
     if (prop.startsWith("__")) return;
     if (prop.startsWith("$$")) return;
     Thread.current.notify(this.component, prop, indexes ?? []);
   }
 
   /**
-   * ViewModelに設定した初期化処理（[SymInit]）を実行
+   * ViewModelに設定した初期化処理（$onInit）を実行
    * @param {Object} target ViewModel
    * @param {Proxy} receiver ViewModelProxy
    */
-  async [SymInit](target, receiver) {
-    (SymOnInit in target) && await Reflect.apply(target[SymOnInit], receiver,[]);
+  async $init(target, receiver) {
+    ("$onInit" in target) && await Reflect.apply(target.$onInit, receiver,[]);
   }
 
   /**
    * 指定されたパスのキャッシュをクリア
    * @param {Set<string>} setOfPath 指定されたパスのセット
    */
-  [SymDeleteCache](setOfPath) {
+  $deleteCache(setOfPath) {
     const cache = this.cache;
     for(const path of Array.from(setOfPath)) {
       cache.deleteRelative(path);
@@ -396,7 +323,7 @@ class Handler {
    * @param {Object} binds バインド情報
    * @return {Any?} 正常終了の場合、クローズ時のパラメータ、キャンセルの場合、undefined
    */
-  async [SymOpenDialog](...args) {
+  async $openDialog(...args) {
     const receiver = args.pop();
     const target = args.pop();
     const [name, params = {}] = args;
@@ -427,14 +354,14 @@ class Handler {
    * ダイアログ処理終了
    * @param {Object} data 
    */
-  [SymCloseDialog](data) {
+  $closeDialog(data) {
     this.component.closeDialog(data);
   }
 
   /**
    * ダイアログキャンセル終了
    */
-  [SymCancelDialog]() {
+  $cancelDialog() {
     this.component.cancelDialog();
   }
 
@@ -443,7 +370,7 @@ class Handler {
    * @param {Set<string>} setOfNames 
    * @param {(key:string,node:Node)=>{}} callback 
    */
-  [SymFindNode](setOfNames, callback) {
+  $findNode(setOfNames, callback) {
     this.component.binder.findNode(setOfNames, callback);
   }setOfNames
 
@@ -454,14 +381,17 @@ class Handler {
    * @param {Proxy} receiver VirewModelProxy
    * @returns 
    */
+
   get(target, prop, receiver) {
     if (SET_OF_PROXY_METHODS.has(prop)) {
       return (...args) => Reflect.apply(this[prop], this, [...args, target, receiver]);
     }
     if (SET_OF_PROXY_MEMBERS.has(prop)) {
-      if (prop === "$indexes") {
-        return this.component.stackIndexes.current;
-      }
+      const getMemberFunc = getMemberFuncOfProp.get(prop);
+      if (getMemberFunc) return getMemberFunc(this);
+//      if (prop === "$indexes") {
+//        return this.component.stackIndexes.current;
+//      }
       if (utils.isSymbol(prop)) {
         return Reflect.get(this, prop);
       }
@@ -476,7 +406,7 @@ class Handler {
         const results = exProp.regexp.exec(prop);
         if (results) {
           const indexes = results.slice(1);
-          return this[SymGetValue](exProp.prop, indexes, prop, target, receiver);
+          return this.$getValue(exProp.prop, indexes, prop, target, receiver);
           break;
         }
       }
@@ -504,7 +434,7 @@ class Handler {
         const results = exProp.regexp.exec(prop);
         if (results) {
           const indexes = results.slice(1);
-          this[SymSetValue](exProp.prop, indexes, prop, value, target, receiver);
+          this.$setValue(exProp.prop, indexes, prop, value, target, receiver);
           return true;
         }
       }
@@ -513,7 +443,7 @@ class Handler {
     Reflect.set(target, prop, value, receiver);
     this.cache.deleteRelative(prop);
     const indexes = this.component.stackIndexes.current;
-    this[SymNotify](prop, indexes);
+    this.$notify(prop, indexes);
     return true;
   }
 
