@@ -25,11 +25,13 @@ class ViewModel {
 
   $onNotify({prop}) {
     if (prop === "zipcode") {
-      if (!/^[0-9]{7}$/.test(this.zipcode)) {
-        this.$asyncProc(() => this.result = "");
-      } else {
-        this.$asyncProc(this.search, [this.zipcode]);
-      }
+      this.$asyncProc(async () => {
+        if (!/^[0-9]{7}$/.test(this.zipcode)) {
+          this.result = "";
+        } else {
+          await this.search(this.zipcode);
+        }
+      });
     }
   }
 }

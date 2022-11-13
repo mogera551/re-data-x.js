@@ -78,7 +78,7 @@ export default class {
           const addNotifications = [];
           if ("$onNotify" in viewModelProxy ?? []) {
             addNotifications.push(
-              Array.from(notifications)
+              ...Array.from(notifications)
                 .flatMap(notification => viewModelProxy.$onNotify(notification))
                 .filter(notification => notification != null)
                 .map(notification => new NotifyData(component, notification.prop, notification?.indexes))
