@@ -25,13 +25,9 @@ class ViewModel {
     this.selectTicketId = "";
   }
 
-  $onNotify({prop}) {
-    if (prop === "selectTicketId") {
-      return [
-        { prop:"selectTicket" },
-      ];
-    }
-  }
+  $relativeProps = [
+    [ "selectTicket", [ "selectTicketId" ] ]
+  ];
 }
 
 export default {

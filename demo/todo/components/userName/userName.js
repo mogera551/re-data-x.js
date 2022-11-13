@@ -13,11 +13,9 @@ class ViewModel {
     this.userName = `${this.lastName} ${this.firstName}`;
   }
 
-  $onNotify(notification) {
-    if (new Set(["lastName", "firstName"]).has(notification.prop)) {
-      return { prop:"isComplete" };
-    }
-  }
+  $relativeProps = [
+    [ "isComplete", [ "lastName", "firstName" ] ],
+  ];
 }
 
 export default { ViewModel, html }

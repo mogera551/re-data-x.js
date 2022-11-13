@@ -55,51 +55,59 @@ export default class {
       // 通知に一致するプロパティをDOMへ反映する
       for(let [component, notifications] of notificationsByComponent.entries()) {
         const viewModelProxy = component?.viewModelProxy;
-        // リストの要素の場合、関連するプロパティは削除する
         /**
-         * @type {Set<string>}
+         * 
+         * @param {NotifyData[]} notifications 
+         * @returns {NotifyData[]}
          */
-        const setOfArrayProps = viewModelProxy?.$setOfArrayProps ?? new Set;
-        /**
-         * @type {Map<string,string[]>}
-         */
-        const setOfRelativePropsByProp = viewModelProxy?.$setOfRelativePropsByProp ?? new Set;
-        /**
-         * @type {Set<NotifyData>}
-         */
-        const setOfRemoveNotifications = new Set;
-        for(const notification of notifications) {
-          if (!setOfArrayProps.has(notification.prop)) continue;
-          const setOfRelativeProp = setOfRelativePropsByProp[notification.prop] ?? new Set;
-          for(const relateNotification of notifications) {
-            if (!setOfRelativeProp.has(relateNotification.prop)) continue;
-            setOfRemoveNotifications.add(relateNotification);
+        const getAddNotifications = notifications => {
+          // リストの要素の場合、関連するプロパティは削除する
+          const setOfArrayProps = viewModelProxy?.$setOfArrayProps ?? new Set;
+          const setOfRelativePropsByProp = viewModelProxy?.$setOfRelativePropsByProp ?? new Set;
+          const setOfRemoveNotifications = new Set;
+          for(const notification of notifications) {
+            if (!setOfArrayProps.has(notification.prop)) continue;
+            const setOfRelativeProp = setOfRelativePropsByProp[notification.prop] ?? new Set;
+            for(const relateNotification of notifications) {
+              if (!setOfRelativeProp.has(relateNotification.prop)) continue;
+              setOfRemoveNotifications.add(relateNotification);
+            }
           }
-        }
-        notifications = notifications.filter(notification => !setOfRemoveNotifications.has(notification));
-        
-        if ("$onNotify" in viewModelProxy ?? []) {
-          const addNotifications = 
-            Array.from(notifications)
-              .flatMap(notification => viewModelProxy.$onNotify(notification))
-              .filter(notification => notification != null)
-              .map(notification => new NotifyData(component, notification.prop, notification?.indexes));
-          notifications.push(...addNotifications);
-        }
+          notifications = notifications.filter(notification => !setOfRemoveNotifications.has(notification));
 
-        // リストの要素でない場合、関連するプロパティは追加する
-        /**
-         * @type {NotifyData[]}
-         */
-        const addRelativeNotifications = [];
-        for(const notification of notifications) {
-          if (setOfArrayProps.has(notification.prop)) continue;
-          const setOfRelativeProp = setOfRelativePropsByProp.get(notification.prop) ?? new Set;
-          addRelativeNotifications.push(...Array.from(setOfRelativeProp).map(prop => new NotifyData(component, prop, notification?.indexes))) ;
+          const addNotifications = [];
+          if ("$onNotify" in viewModelProxy ?? []) {
+            addNotifications.push(
+              Array.from(notifications)
+                .flatMap(notification => viewModelProxy.$onNotify(notification))
+                .filter(notification => notification != null)
+                .map(notification => new NotifyData(component, notification.prop, notification?.indexes))
+            );
+          }
+//          const addRelativeNotifications = [];
+          for(const notification of notifications) {
+            let setOfRelativeProp = new Set;
+            if (setOfArrayProps.has(notification.prop)) {
+              // リストの要素で"${prop}."で始まる関連プロパティを追加しない
+              const compProp = `${notification.prop}.`;
+              setOfRelativePropsByProp.get(notification.prop)?.forEach(prop => !prop.startsWith(compProp) && setOfRelativeProp.add(prop));
+            } else {
+              setOfRelativeProp = setOfRelativePropsByProp.get(notification.prop) ?? new Set;
+            }
+            addNotifications.push(...Array.from(setOfRelativeProp).map(prop => new NotifyData(component, prop, notification?.indexes))) ;
+          }
+          return addNotifications;
         }
-        notifications.push(...addRelativeNotifications);
+        const allNotifications = [ notifications ];
+        let tempNotifications = notifications;
+        do {
+          const addNotifications = getAddNotifications(tempNotifications);
+          if (addNotifications.length === 0) break;
+          allNotifications.push(addNotifications);
+          tempNotifications = addNotifications;
+        } while(true);
 
-        const setOfNotifications = new Set(notifications.map(notification => notification.path));
+        const setOfNotifications = new Set(allNotifications.flatMap(notification => notification).map(notification => notification.path));
         viewModelProxy.$deleteCache(setOfNotifications);
         //console.log(component.tagName, Array.from(setOfNotifications).join(","));
         component.binder.update(setOfNotifications, new Set);

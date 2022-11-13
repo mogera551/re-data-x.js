@@ -127,6 +127,7 @@ export default class {
   static build(component, viewModel = component.viewModel) {
     const descByProp = new Map;
     const setOfPrivateProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("__")));
+    const setOfContextProps = new Set(Object.keys(viewModel).filter(prop => prop[0] === "$" && prop[1] !== "$"));
     const importProps = [];
     //const arrayProps = [];
 
@@ -154,7 +155,7 @@ export default class {
     };
     
     for(const [prop, value] of Object.entries(viewModel)) {
-      if (setOfPrivateProps.has(prop)) continue;
+      if (setOfPrivateProps.has(prop) || setOfContextProps.has(prop)) continue;
       if (value === Symbol.for("import")) {
         // importなのでdata-bindプロパティの展開処理
         importProps.push(prop);
@@ -179,7 +180,7 @@ export default class {
       }
     }
 
-    const removeProps = Object.keys(viewModel).filter(prop => !setOfPrivateProps.has(prop));
+    const removeProps = Object.keys(viewModel).filter(prop => !setOfPrivateProps.has(prop) && !setOfContextProps.has(prop));
     removeProps.forEach(prop => delete viewModel[prop]);
     for(const [prop, desc] of descByProp.entries()) {
       Object.defineProperty(viewModel, prop, desc);

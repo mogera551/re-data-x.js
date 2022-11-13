@@ -30,4 +30,8 @@ export default class AsyncProcData {
     this.args = args;
   }
 
+  async exec(target = this.target, thisArg = this.thisArg, args = this.args) {
+    return await Reflect.apply(target, thisArg, args);
+  }
+
 }

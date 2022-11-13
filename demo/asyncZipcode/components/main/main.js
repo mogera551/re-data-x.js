@@ -2,16 +2,9 @@ import html from "../../../../dist/importText.js?path=./components/main/main.htm
 
 const URL_API = "https://api.zipaddress.net/";
 class ViewModel {
-  __zipcode = "";
   "result" = null;
 
-  get "zipcode"() {
-    return this.__zipcode;
-  }
-  set "zipcode"(value) {
-    this.__zipcode = value;
-    (/^[0-9]{7}$/.test(value)) ? this.$asyncProc(this.search, [value]) : (this.result = null);
-  }
+  "zipcode";
   get "address"() {
     return this.result?.code === 200 ? this.result.data.fullAddress : "";
   };
@@ -25,12 +18,18 @@ class ViewModel {
     this.result = await response.json();
   }
 
+  $relativeProps = [
+    [ "address", [ "result" ] ],
+    [ "message", [ "result" ] ],
+  ];
+
   $onNotify({prop}) {
-    if (prop === "result") {
-      return [
-        { prop:"address" },
-        { prop:"message" },
-      ];
+    if (prop === "zipcode") {
+      if (!/^[0-9]{7}$/.test(this.zipcode)) {
+        this.$asyncProc(() => this.result = "");
+      } else {
+        this.$asyncProc(this.search, [this.zipcode]);
+      }
     }
   }
 }

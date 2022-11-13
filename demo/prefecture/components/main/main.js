@@ -28,14 +28,10 @@ class ViewModel {
     return this.prefectures.reduce((sum, pref) => sum + pref.population, 0);
   }
 
-  $onNotify({ prop }) {
-    if (prop === "selectedRegion") {
-      return [
-        { prop:"prefectures" },
-        { prop:"sumPopulationOfRegion" },
-      ];
-    }
-  }
+  $relativeProps = [
+    [ "prefectures", [ "selectedRegion" ] ],
+    [ "sumPopulationOfRegion", [ "prefectures" ] ],
+  ];
 }
 
 export default {

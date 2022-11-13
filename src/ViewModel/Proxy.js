@@ -301,6 +301,16 @@ class Handler {
    * @param {Proxy} receiver ViewModelProxy
    */
   async $init(target, receiver) {
+    if ("$relativeProps" in target) {
+      const relativeProps = Reflect.get(target, "$relativeProps", receiver);
+      relativeProps.forEach(([prop, refProps]) => {
+        refProps.forEach(refProp => {
+          const setOfRelativeProps = this.setOfRelativePropsByProp.get(refProp).add(prop) ?? new Set([prop]);
+          this.setOfRelativePropsByProp.set(refProp, setOfRelativeProps);
+        })
+      });
+    }
+
     ("$onInit" in target) && await Reflect.apply(target.$onInit, receiver,[]);
   }
 

@@ -31,7 +31,7 @@ export default class AsyncProc {
       if (procs.length === 0) break;
       queue.splice(0);
       for(const proc of procs) {
-        await Reflect.apply(proc.target, proc.thisArg, proc.args);
+        await proc.exec();
       }
     } while(true);
 //    console.log(`exec() end`);
