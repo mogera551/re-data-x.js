@@ -26,6 +26,9 @@ export default class {
    */
   enqueue(notifyData, queue = this.queue) {
     //notifyData.prop.startsWith("__") && (notifyData.prop = notifyData.prop.slice(2));
+    if (notifyData.component.isInitializing) {
+      return;
+    }
     queue.push(notifyData);
   }
 
@@ -84,12 +87,11 @@ export default class {
                 .map(notification => new NotifyData(component, notification.prop, notification?.indexes))
             );
           }
-//          const addRelativeNotifications = [];
           for(const notification of notifications) {
             let setOfRelativeProp = new Set;
             if (setOfArrayProps.has(notification.prop)) {
-              // リストの要素で"${prop}."で始まる関連プロパティを追加しない
-              const compProp = `${notification.prop}.`;
+              // リストの要素で"${prop}.*."で始まる関連プロパティを追加しない
+              const compProp = `${notification.prop}.*.`;
               setOfRelativePropsByProp.get(notification.prop)?.forEach(prop => !prop.startsWith(compProp) && setOfRelativeProp.add(prop));
             } else {
               setOfRelativeProp = setOfRelativePropsByProp.get(notification.prop) ?? new Set;

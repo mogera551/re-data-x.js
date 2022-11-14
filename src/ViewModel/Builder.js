@@ -186,7 +186,7 @@ export default class {
       Object.defineProperty(viewModel, prop, desc);
       ViewModelProperty.create(prop);
     }
-    const publicProps = Object.keys(viewModel);
+    const publicProps = Object.keys(viewModel).concat(importProps);
     // 配列と思われるプロパティの取得
     const arrayProps = publicProps.filter(prop => `${prop}.*` in viewModel);
     // 関係のあるプロパティ

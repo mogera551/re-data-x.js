@@ -50,16 +50,16 @@ class Updator {
    */
   async exec() {
     do {
-      console.time("update.exec()");
       // 非同期処理実行
+//      console.log("update.exec() start");
       await this.asyncProc.exec();
-      console.timeLog("update.exec()");
+//      console.log("asyncProc.exec() end");
       // View更新
       this.notify.updateElements();
-      console.timeLog("update.exec()");
+//      console.log("notify.updateElements() end");
       // ノード更新処理実行
       this.updateNodeScheduler.exec();
-      console.timeEnd("update.exec()");
+//      console.log("updateNodeScheduler.exec() end");
       if (this.asyncProc.queue.length == 0 
         && this.notify.queue.length == 0 
         && this.updateNodeScheduler.queue.length == 0 ) break;

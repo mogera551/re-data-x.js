@@ -32,6 +32,7 @@ export default class BaseComponent extends HTMLElement {
    * @type {function}
    */
   #initializeReject;
+  #isInitializing;
  
   #resolveForDialog;
   #rejectForDialog;
@@ -68,6 +69,7 @@ export default class BaseComponent extends HTMLElement {
    */
   constructor() {
     super();
+    this.#isInitializing = true;
     this.#initializePromise = new Promise((resolve, reject) => {
       this.#initializeResolve = resolve;
       this.#initializeReject = reject;
@@ -126,6 +128,9 @@ export default class BaseComponent extends HTMLElement {
    */
   get initializePromise() {
     return this.#initializePromise;
+  }
+  get isInitializing() {
+    return this.#isInitializing;
   }
   /**
    * ダイアログ情報をセット
@@ -219,14 +224,18 @@ export default class BaseComponent extends HTMLElement {
    * @async
    */
   async componentInit() {
-    if ("dialog" in this.dataset) {
-      await this.dialogComponentInit();
-    } else if (this.parentComponent == null) {
-      await this.topComponentInit();
-    } else {
-      await this.defaultComponentInit();
+    try {
+      if ("dialog" in this.dataset) {
+        await this.dialogComponentInit();
+      } else if (this.parentComponent == null) {
+        await this.topComponentInit();
+      } else {
+        await this.defaultComponentInit();
+      }
+    } finally {
+      this.#isInitializing = false;
+      this.#initializeResolve(true);
     }
-    this.#initializeResolve(true);
   }
     
   /**

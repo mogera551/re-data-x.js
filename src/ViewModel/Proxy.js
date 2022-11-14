@@ -284,6 +284,8 @@ class Handler {
   /**
    * 更新を通知する
    * __で始まるプロパティは対象外
+   * $$で始まるプロパティは対象外
+   * インポートしたプロパティは対象外
    * ViewModelから呼ばれることを想定
    * @param {string} prop 
    * @param {Array<integer>} indexes 
@@ -292,6 +294,7 @@ class Handler {
   $notify(prop, indexes) {
     if (prop.startsWith("__")) return;
     if (prop.startsWith("$$")) return;
+    if (this.setOfImportProps.has(prop)) return;
     Thread.current.notify(this.component, prop, indexes ?? []);
   }
 

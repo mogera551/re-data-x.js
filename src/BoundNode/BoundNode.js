@@ -688,9 +688,6 @@ export default class BoundNode {
           });
         }
       }
-      if (this.node instanceof Component) {
-        this.component.binder.update(setOfNotification, setOfGlobalNotification);
-      }
     }
   }
 
