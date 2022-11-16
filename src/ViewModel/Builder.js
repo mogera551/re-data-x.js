@@ -12,7 +12,7 @@ import {Component} from "../Component/WebComponent.js";
 const defaultGetter = (component, viewModelProxy = component.viewModelProxy) => (path, last) => () => {
   const indexes = component.stackIndexes.current ?? [];
   const lastIndex = (last === "*") ? indexes.at(path.match(/\*/g)?.length) : last;
-  return viewModelProxy[path]?.[lastIndex] ?? "";
+  return viewModelProxy[path]?.[lastIndex];
 }
 
 /**
@@ -36,7 +36,7 @@ const defaultSetter = (component, viewModelProxy = component.viewModelProxy) => 
  */
 const defaultGetterPrimitive = (component, viewModelProxy = component.viewModelProxy) => path => () => {
   const privatePath = `__${path}`;
-  return viewModelProxy?.[privatePath] ?? "";
+  return viewModelProxy?.[privatePath];
 }
 
 /**
@@ -58,7 +58,7 @@ const defaultSetterPrimitive = (component, viewModelProxy = component.viewModelP
  */
 const defaultGetterGlobalPrimitive = path => () => {
   const propName = path.slice(2); // 先頭$$をスキップ
-  return globals?.[propName] ?? "";
+  return globals?.[propName];
 }
 
 /**
