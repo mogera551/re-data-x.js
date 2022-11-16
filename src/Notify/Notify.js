@@ -1,5 +1,6 @@
 import NotifyData from "./NotifyData.js";
 import { Component } from "../Component/WebComponent.js";
+import Thread from "../Thread/Thread.js";
 
 export default class {
   /**
@@ -79,7 +80,7 @@ export default class {
           notifications = notifications.filter(notification => !setOfRemoveNotifications.has(notification));
 
           const addNotifications = [];
-          if ("$onNotify" in viewModelProxy ?? []) {
+          if ("$onNotify" in viewModelProxy ?? {}) {
             addNotifications.push(
               ...Array.from(notifications)
                 .flatMap(notification => viewModelProxy.$onNotify(notification))
@@ -100,19 +101,30 @@ export default class {
           }
           return addNotifications;
         }
-        const allNotifications = [ notifications ];
+        const arrayNotifications = [ notifications ];
         let tempNotifications = notifications;
         do {
           const addNotifications = getAddNotifications(tempNotifications);
           if (addNotifications.length === 0) break;
-          allNotifications.push(addNotifications);
+          arrayNotifications.push(addNotifications);
           tempNotifications = addNotifications;
         } while(true);
 
-        const setOfNotifications = new Set(allNotifications.flatMap(notification => notification).map(notification => notification.path));
-        viewModelProxy.$deleteCache(setOfNotifications);
+        const allNotifications = arrayNotifications.flatMap(notification => notification);
+        const notificationByPath = new Map;
+        allNotifications.reduce((map, notification) => map.set(notification.path, notification), notificationByPath);
+
+        const setOfNotificationPaths = new Set(notificationByPath.keys());
+        viewModelProxy.$deleteCache(setOfNotificationPaths);
         //console.log(component.tagName, Array.from(setOfNotifications).join(","));
-        component.binder.update(setOfNotifications, new Set);
+        component.binder.update(setOfNotificationPaths, new Set);
+        if ("$onChange" in viewModelProxy ?? {}) {
+          viewModelProxy.$asyncProc(async () => {
+            for(const notification of notificationByPath.values()) {
+              await viewModelProxy.$onChange(notification);
+            }
+          });
+        }
       }    
   
     } while(true);

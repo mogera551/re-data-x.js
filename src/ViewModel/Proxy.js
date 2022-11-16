@@ -16,7 +16,7 @@ const SymIsProxy = Symbol.for("isProxy");
 
 const SET_OF_PROXY_METHODS = new Set([
   "$getValue", "$setValue", "$init", "$deleteCache", "$asyncProc", "$notify",
-  "$openDialog", "$closeDialog", "$cancelDialog", "$addImportProp", "$findNode"
+  "$openDialog", "$closeDialog", "$cancelDialog", "$addImportProp", "$findNode",
 ]);
 
 /**
