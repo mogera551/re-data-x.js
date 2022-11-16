@@ -23,8 +23,8 @@ class ViewModel {
     [ "message", [ "result" ] ],
   ];
 
-  async $onChange({prop}) {
-    if (prop === "zipcode") {
+  async $onChange(notifications) {
+    if (notifications.find(({prop}) => prop === "zipcode")) {
       if (!/^[0-9]{7}$/.test(this.zipcode)) {
         this.result = "";
       } else {

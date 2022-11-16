@@ -120,9 +120,7 @@ export default class {
         component.binder.update(setOfNotificationPaths, new Set);
         if ("$onChange" in viewModelProxy ?? {}) {
           viewModelProxy.$asyncProc(async () => {
-            for(const notification of notificationByPath.values()) {
-              await viewModelProxy.$onChange(notification);
-            }
+            await viewModelProxy.$onChange(Array.from(notificationByPath.values()));
           });
         }
       }    
