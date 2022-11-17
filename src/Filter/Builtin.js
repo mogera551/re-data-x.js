@@ -17,6 +17,7 @@ export class outputFilters {
   static ge           = (value, options) => Number(value) >= Number(options[0]);
   static embed        = (value, options) => decodeURI((options[0] ?? "").replaceAll("%s", value));
   static ifText       = (value, options) => value ? options[0] ?? "" : options[1] ?? "";
+  static null         = (value, options) => (value == null) ? true : false;
 }
 
 export class inputFilters {
