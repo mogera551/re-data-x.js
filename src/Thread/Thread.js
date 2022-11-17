@@ -131,7 +131,10 @@ export default class Thread {
         }
       } catch(e) {
         console.error(e);
-        break;
+        if (!confirm("致命的エラーが発生しました。継続しますか？")) {
+          break;
+        }
+//        break;
       }
     } while(true);
   }
