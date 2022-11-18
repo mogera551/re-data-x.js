@@ -51,15 +51,17 @@ class Updator {
   async exec() {
     do {
       // 非同期処理実行
-//      console.log("update.exec() start");
+      console.time("asyncProc");
       await this.asyncProc.exec();
-//      console.log("asyncProc.exec() end");
+      console.timeEnd("asyncProc");
       // View更新
+      console.time("updateElements");
       this.notify.updateElements();
-//      console.log("notify.updateElements() end");
+      console.timeEnd("updateElements");
       // ノード更新処理実行
+      console.time("updateNodeScheduler");
       this.updateNodeScheduler.exec();
-//      console.log("updateNodeScheduler.exec() end");
+      console.timeEnd("updateNodeScheduler");
       if (this.asyncProc.queue.length == 0 
         && this.notify.queue.length == 0 
         && this.updateNodeScheduler.queue.length == 0 ) break;
@@ -130,11 +132,12 @@ export default class Thread {
           this.updator = null;
         }
       } catch(e) {
-        console.error(e);
-        if (!confirm("致命的エラーが発生しました。継続しますか？")) {
-          break;
+        if (typeof e !== "undefined") {
+          console.error(e);
+          if (!confirm("致命的エラーが発生しました。継続しますか？")) {
+            break;
+          }
         }
-//        break;
       }
     } while(true);
   }

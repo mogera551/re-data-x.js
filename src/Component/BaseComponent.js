@@ -92,7 +92,7 @@ export default class BaseComponent extends HTMLElement {
    * @param {ComponentData} componentData 
    */
   build(componentData) {
-    this.attachShadow({mode: 'open'});
+    this.withoutShadowRoot || this.attachShadow({mode: 'open'});
     this.template = componentData.template;
     this.viewModel = Reflect.construct(componentData.ViewModel, []);
     this.viewModelProxy = ViewModelProxy.create(this);
@@ -107,18 +107,38 @@ export default class BaseComponent extends HTMLElement {
    */
   get parentComponent() {
     if (typeof this.#parentComponent === "undefined") {
-      let component = this;
+      let node = this;
       do {
-        component = component.getRootNode()?.host ?? null;
-        if (component == null) break;
-        if (component instanceof BaseComponent) break;
+        node = node.parentNode;
+        if (node == null) break;
+        if (node instanceof ShadowRoot) {
+          node = node.host;
+          break;
+        }
+        if (node instanceof BaseComponent) break;
       } while(true);
-      this.#parentComponent = component;
+      this.#parentComponent = node;
     }
     return this.#parentComponent;
   }
   set parentComponent(component) {
     this.#parentComponent = component;
+  }
+
+  /**
+   * shadowRootを使ってカプセル化をしない(true)
+   * @type {boolean}
+   */
+  get withoutShadowRoot() {
+    return this.hasAttribute("without-shadowroot");
+  }
+
+  set withoutShadowRoot(value) {
+    if (value) {
+      this.setAttribute("without-shadowroot", "");
+    } else {
+      this.removeAttribute("without-shadowroot");
+    }
   }
 
   /**

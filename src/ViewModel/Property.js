@@ -49,6 +49,12 @@ export default class ViewModelProperty {
     this.regexp = isExpandable ? new RegExp("^" + this.prop.replaceAll("*", "(\\w+)").replaceAll(".", "\\.") + "$") : null;
     this.level = this.prop.match(/\*/g)?.length ?? 0;
     this.propIndexes = this.indexes.slice(- this.level) ?? [];
+    const paths = path.split(".").slice(-1);
+    const parentPaths = [ paths.join(".") ];
+    for(let i = 1; i < paths.length; i++) {
+      parentPaths.push(paths.slice(0, - i).join("."));
+    }
+    this.setOfParentPaths = new Set(parentPaths);
   }
 
   /**

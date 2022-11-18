@@ -233,6 +233,9 @@ class Handler {
    * @returns 
    */
   $getValue(prop, indexes, path, target, receiver) {
+    if (!Handler.propInfoByProp.has(path)) {
+      Handler.propInfoByProp.set(path, { prop, indexes, path });
+    }
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
@@ -257,6 +260,9 @@ class Handler {
    * @param {Proxy} receiver ViewModelProxy
    */
   $setValue(prop, indexes, path, value, target, receiver) {
+    if (!Handler.propInfoByProp.has(path)) {
+      Handler.propInfoByProp.set(path, { prop, indexes, path });
+    }
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
@@ -387,6 +393,8 @@ class Handler {
     this.component.binder.findNode(setOfNames, callback);
   }setOfNames
 
+  static propInfoByProp = new Map();
+
   /**
    * getter
    * @param {Object} target ViewModel
@@ -394,7 +402,6 @@ class Handler {
    * @param {Proxy} receiver VirewModelProxy
    * @returns 
    */
-
   get(target, prop, receiver) {
     if (SET_OF_PROXY_METHODS.has(prop)) {
       return (...args) => Reflect.apply(this[prop], this, [...args, target, receiver]);
@@ -415,12 +422,18 @@ class Handler {
       return wrapArrayProxy(this.component, prop, this.cache.get(prop));
     }
     if (!(prop in target)) {
-      for(const exProp of ViewModelProperty.expandableProperties) {
-        const results = exProp.regexp.exec(prop);
-        if (results) {
-          const indexes = results.slice(1);
-          return this.$getValue(exProp.prop, indexes, prop, target, receiver);
-          break;
+      if (Handler.propInfoByProp.has(prop)) {
+        const args = Handler.propInfoByProp.get(prop);
+        return this.$getValue(args.prop, args.indexes, args.path, target, receiver);
+      } else {
+        for(const exProp of ViewModelProperty.expandableProperties) {
+          const results = exProp.regexp.exec(prop);
+          if (results) {
+            const indexes = results.slice(1);
+            Handler.propInfoByProp.set(prop, { prop:exProp.prop, indexes, path:prop });
+            return this.$getValue(exProp.prop, indexes, prop, target, receiver);
+            break;
+          }
         }
       }
     }
@@ -443,14 +456,22 @@ class Handler {
    set(target, prop, value, receiver) {
     let isSet = false;
     if (!(prop in target)) {
-      for(const exProp of ViewModelProperty.expandableProperties) {
-        const results = exProp.regexp.exec(prop);
-        if (results) {
-          const indexes = results.slice(1);
-          this.$setValue(exProp.prop, indexes, prop, value, target, receiver);
-          return true;
+      if (Handler.propInfoByProp.has(prop)) {
+        const args = Handler.propInfoByProp.get(prop);
+        this.$setValue(args.prop, args.indexes, args.path, value, target, receiver);
+        return true;
+      } else {
+        for(const exProp of ViewModelProperty.expandableProperties) {
+          const results = exProp.regexp.exec(prop);
+          if (results) {
+            const indexes = results.slice(1);
+            Handler.propInfoByProp.set(prop, { prop:exProp.prop, indexes, path:prop });
+            this.$setValue(exProp.prop, indexes, prop, value, target, receiver);
+            return true;
+          }
         }
       }
+
     }
 
     Reflect.set(target, prop, value, receiver);

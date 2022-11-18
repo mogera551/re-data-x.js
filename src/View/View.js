@@ -24,7 +24,7 @@ export default class View {
    * @param {HTMLTemplateElement?} template 
    * @param {ShadowRoot?} rootElement 
    */
-  render(component = this.component, binder = component.binder, template = component.template, rootElement = component.shadowRoot) {
+  render(component = this.component, binder = component.binder, template = component.template, rootElement = component.shadowRoot ?? component) {
     const clone = document.importNode(template.content, true); // See http://var.blog.jp/archives/76177033.html
     binder.bind(clone);
     binder.init();
