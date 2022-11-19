@@ -5,6 +5,7 @@ import Binder from "../BoundNode/Binder.js";
 import Stack from "./Stack.js";
 import BoundNode from "../BoundNode/BoundNode.js";
 import Thread from "../Thread/Thread.js";
+import ActiveProperty from "../ViewModel/ActiveProperty.js";
 
 /**
  * Componentのベース、HTMLElementを拡張します。
@@ -252,12 +253,24 @@ export default class BaseComponent extends HTMLElement {
       } else {
         await this.defaultComponentInit();
       }
+      this.updateActiveProperty();
     } finally {
       this.#isInitializing = false;
       this.#initializeResolve(true);
     }
   }
-    
+  
+  /**
+   * @type {Map<string,ActiveProperty>}
+   */
+  activePropertyByPath;
+  activePropertiesByParentPath;
+  updateActiveProperty() {
+//    console.time("ActiveProperty.buildByViewModel");
+    const { activePropertyByPath, activePropertiesByParentPath } = ActiveProperty.buildByViewModel(this.viewModelProxy);
+    Object.assign(this, { activePropertyByPath, activePropertiesByParentPath });
+//    console.timeEnd("ActiveProperty.buildByViewModel");
+  }
   /**
    * 接続時コールバック
    */

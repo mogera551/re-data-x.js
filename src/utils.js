@@ -12,7 +12,7 @@ export default class {
 //    const stack = indexes.slice();
 //    return pattern.replaceAll("*", () => stack.shift() ?? "");
     let i = 0;
-    return pattern.replaceAll("*", () => indexes[i++] ?? "");
+    return pattern.replaceAll("*", () => indexes[i++] ?? "*");
   }
 
   /**

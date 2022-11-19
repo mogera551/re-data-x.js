@@ -1,6 +1,7 @@
 import utils from "../utils.js";
 import globals from "../Globals/Globals.js";
 import ViewModelProperty from "./Property.js";
+import DefinedProperty from "./DefinedProperty.js";
 import {Component} from "../Component/WebComponent.js";
 
 /**
@@ -197,7 +198,8 @@ export default class {
         map.set(prop, new Set(publicProps.filter(_prop => _prop.startsWith(relateProp))));
         return map;
       }, setOfRelativePropsByProp);
-//console.log(arrayProps.join(","));
+    publicProps.forEach(prop => DefinedProperty.create(prop));
+    //console.log(arrayProps.join(","));
     return { importProps, arrayProps, setOfRelativePropsByProp };
 
   }

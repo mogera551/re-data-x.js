@@ -1,6 +1,5 @@
 import NotifyData from "./NotifyData.js";
 import { Component } from "../Component/WebComponent.js";
-import Thread from "../Thread/Thread.js";
 
 export default class {
   /**
@@ -58,6 +57,7 @@ export default class {
 
       // 通知に一致するプロパティをDOMへ反映する
       for(let [component, notifications] of notificationsByComponent.entries()) {
+        component?.updateActiveProperty();
         const viewModelProxy = component?.viewModelProxy;
         /**
          * 

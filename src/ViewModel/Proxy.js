@@ -2,8 +2,6 @@ import Thread from "../Thread/Thread.js";
 import Builder from "./Builder.js";
 import utils from "../utils.js";
 import WebComponent, { Component } from "../Component/WebComponent.js";
-import ViewModelProperty from "./Property.js";
-//import DialogComponent from "../Component/DialogComponent.js";
 
 /**
  * @type {Symbol}
@@ -43,9 +41,10 @@ class Cache extends Map {
 //  #setOfImportProps;
   #debug = false;
   /**
-   * 
+   * @type {Component}
    */
   #component;
+
   constructor(component) {
     super();
     this.#component = component;
@@ -73,16 +72,13 @@ class Cache extends Map {
    * @returns {Cache}
    */
   set(key, value) {
-    // シンボル、*を含むプロパティ、__で始まるプロパティ、$$で始まるプロパティ、メソッドはキャッシュ対象外
-    if (utils.isSymbol(key) || key.includes("*") || key.startsWith("__") || key.startsWith("$$")) return;
-    // インポートしたプロパティはキャッシュ対象外
-    if (this.#component.viewModelProxy.$setOfImportProps.has(key)) return;
-    if (utils.isFunction(value)) return; 
-
-    value = value?.[SymIsProxy] ? value[SymRaw] : value
-    const result = super.set(key, value);
-    this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
-    return result;
+    const activePropertyByPath = this.#component.activePropertyByPath;
+    if (activePropertyByPath?.has(key)) {
+      const activeProperty = activePropertyByPath.get(key);
+      value = value?.[SymIsProxy] ? value[SymRaw] : value;
+      super.set(key, value);
+      this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
+    }
   }
 
   /**
@@ -91,9 +87,20 @@ class Cache extends Map {
    * @param {string} key 
    */
   deleteRelative(key) {
-    this.delete(key);
-    const relativeKey = `${key}.`;
-    Array.from(this.keys()).filter(key => key.startsWith(relativeKey)).forEach(key => this.delete(key));
+    const activePropertyByPath = this.#component.activePropertyByPath;
+    this.has(key) && this.delete(key);
+    if (activePropertyByPath?.has(key)) {
+      const activePropertiesByParentPath = this.#component.activePropertiesByParentPath;
+      const walk = (key, init = false) => {
+        !init && this.delete(key);
+        const activeProperties = activePropertiesByParentPath.get(key) ?? [];
+        activeProperties.forEach(activeProperty => {
+          walk(activeProperty.path);
+        })
+
+      }
+      walk(key, true);
+    }
   }
 }
 
@@ -233,9 +240,6 @@ class Handler {
    * @returns 
    */
   $getValue(prop, indexes, path, target, receiver) {
-    if (!Handler.propInfoByProp.has(path)) {
-      Handler.propInfoByProp.set(path, { prop, indexes, path });
-    }
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
@@ -260,9 +264,6 @@ class Handler {
    * @param {Proxy} receiver ViewModelProxy
    */
   $setValue(prop, indexes, path, value, target, receiver) {
-    if (!Handler.propInfoByProp.has(path)) {
-      Handler.propInfoByProp.set(path, { prop, indexes, path });
-    }
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
@@ -299,7 +300,7 @@ class Handler {
    */
   $notify(prop, indexes) {
     if (prop.startsWith("__")) return;
-    if (prop.startsWith("$$")) return;
+    if (prop.startsWith("$")) return;
     if (this.setOfImportProps.has(prop)) return;
     Thread.current.notify(this.component, prop, indexes ?? []);
   }
@@ -393,8 +394,6 @@ class Handler {
     this.component.binder.findNode(setOfNames, callback);
   }setOfNames
 
-  static propInfoByProp = new Map();
-
   /**
    * getter
    * @param {Object} target ViewModel
@@ -409,9 +408,6 @@ class Handler {
     if (SET_OF_PROXY_MEMBERS.has(prop)) {
       const getMemberFunc = getMemberFuncOfProp.get(prop);
       if (getMemberFunc) return getMemberFunc(this);
-//      if (prop === "$indexes") {
-//        return this.component.stackIndexes.current;
-//      }
       if (utils.isSymbol(prop)) {
         return Reflect.get(this, prop);
       }
@@ -422,19 +418,9 @@ class Handler {
       return wrapArrayProxy(this.component, prop, this.cache.get(prop));
     }
     if (!(prop in target)) {
-      if (Handler.propInfoByProp.has(prop)) {
-        const args = Handler.propInfoByProp.get(prop);
-        return this.$getValue(args.prop, args.indexes, args.path, target, receiver);
-      } else {
-        for(const exProp of ViewModelProperty.expandableProperties) {
-          const results = exProp.regexp.exec(prop);
-          if (results) {
-            const indexes = results.slice(1);
-            Handler.propInfoByProp.set(prop, { prop:exProp.prop, indexes, path:prop });
-            return this.$getValue(exProp.prop, indexes, prop, target, receiver);
-            break;
-          }
-        }
+      if (this.component.activePropertyByPath.has(prop)) {
+        const activeProperty = this.component.activePropertyByPath.get(prop);
+        return this.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path, target, receiver);
       }
     }
     const value = Reflect.get(target, prop, receiver);
@@ -456,22 +442,11 @@ class Handler {
    set(target, prop, value, receiver) {
     let isSet = false;
     if (!(prop in target)) {
-      if (Handler.propInfoByProp.has(prop)) {
-        const args = Handler.propInfoByProp.get(prop);
-        this.$setValue(args.prop, args.indexes, args.path, value, target, receiver);
+      if (this.component.activePropertyByPath.has(prop)) {
+        const activeProperty = this.component.activePropertyByPath.get(prop);
+        this.$setValue(activeProperty.name, activeProperty.indexes, activeProperty.path, value, target, receiver);
         return true;
-      } else {
-        for(const exProp of ViewModelProperty.expandableProperties) {
-          const results = exProp.regexp.exec(prop);
-          if (results) {
-            const indexes = results.slice(1);
-            Handler.propInfoByProp.set(prop, { prop:exProp.prop, indexes, path:prop });
-            this.$setValue(exProp.prop, indexes, prop, value, target, receiver);
-            return true;
-          }
-        }
       }
-
     }
 
     Reflect.set(target, prop, value, receiver);
