@@ -72,9 +72,8 @@ class Cache extends Map {
    * @returns {Cache}
    */
   set(key, value) {
-    const activePropertyByPath = this.#component.activePropertyByPath;
-    if (activePropertyByPath?.has(key)) {
-      const activeProperty = activePropertyByPath.get(key);
+    const activeProperties = this.#component.activeProperties;
+    if (activeProperties?.has(key)) {
       value = value?.[SymIsProxy] ? value[SymRaw] : value;
       super.set(key, value);
       this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
@@ -87,19 +86,10 @@ class Cache extends Map {
    * @param {string} key 
    */
   deleteRelative(key) {
-    const activePropertyByPath = this.#component.activePropertyByPath;
+    const activeProperties = this.#component.activeProperties;
     this.has(key) && this.delete(key);
-    if (activePropertyByPath?.has(key)) {
-      const activePropertiesByParentPath = this.#component.activePropertiesByParentPath;
-      const walk = (key, init = false) => {
-        !init && this.delete(key);
-        const activeProperties = activePropertiesByParentPath.get(key) ?? [];
-        activeProperties.forEach(activeProperty => {
-          walk(activeProperty.path);
-        })
-
-      }
-      walk(key, true);
+    if (activeProperties?.has(key)) {
+      activeProperties.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
     }
   }
 }
@@ -418,8 +408,8 @@ class Handler {
       return wrapArrayProxy(this.component, prop, this.cache.get(prop));
     }
     if (!(prop in target)) {
-      if (this.component.activePropertyByPath.has(prop)) {
-        const activeProperty = this.component.activePropertyByPath.get(prop);
+      if (this.component.activeProperties.has(prop)) {
+        const activeProperty = this.component.activeProperties.get(prop);
         return this.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path, target, receiver);
       }
     }
@@ -442,8 +432,8 @@ class Handler {
    set(target, prop, value, receiver) {
     let isSet = false;
     if (!(prop in target)) {
-      if (this.component.activePropertyByPath.has(prop)) {
-        const activeProperty = this.component.activePropertyByPath.get(prop);
+      if (this.component.activeProperties.has(prop)) {
+        const activeProperty = this.component.activeProperties.get(prop);
         this.$setValue(activeProperty.name, activeProperty.indexes, activeProperty.path, value, target, receiver);
         return true;
       }

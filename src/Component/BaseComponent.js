@@ -6,6 +6,7 @@ import Stack from "./Stack.js";
 import BoundNode from "../BoundNode/BoundNode.js";
 import Thread from "../Thread/Thread.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
+import ActiveProperties from "../ViewModel/ActiveProperties.js";
 
 /**
  * Componentのベース、HTMLElementを拡張します。
@@ -259,17 +260,19 @@ export default class BaseComponent extends HTMLElement {
       this.#initializeResolve(true);
     }
   }
-  
+
+  /**
+   * @type {ActiveProperties}
+   */
+  activeProperties;
+
   /**
    * @type {Map<string,ActiveProperty>}
    */
-  activePropertyByPath;
-  activePropertiesByParentPath;
   updateActiveProperty() {
-//    console.time("ActiveProperty.buildByViewModel");
-    const { activePropertyByPath, activePropertiesByParentPath } = ActiveProperty.buildByViewModel(this.viewModelProxy);
-    Object.assign(this, { activePropertyByPath, activePropertiesByParentPath });
-//    console.timeEnd("ActiveProperty.buildByViewModel");
+    console.time("ActiveProperty.buildByViewModel");
+    this.activeProperties = ActiveProperties.create(this.viewModelProxy);
+    console.timeEnd("ActiveProperty.buildByViewModel");
   }
   /**
    * 接続時コールバック
