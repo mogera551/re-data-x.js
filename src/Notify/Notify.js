@@ -85,7 +85,15 @@ export default class {
               ...Array.from(notifications)
                 .flatMap(notification => viewModelProxy.$onNotify(notification))
                 .filter(notification => notification != null)
-                .map(notification => new NotifyData(component, notification.prop, notification?.indexes))
+                .flatMap(notification => {
+                  const level = notification.prop.match(/\*/g)?.length ?? 0;
+                  if (notification.indexes.length < level) {
+                    const activeProperties = component.activeProperties.search(notification.prop, notification.indexes) ?? [];
+                    return activeProperties.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes))
+                  } else {
+                    return new NotifyData(component, notification.prop, notification.indexes);
+                  }
+                })
             );
           }
           for(const notification of notifications) {
