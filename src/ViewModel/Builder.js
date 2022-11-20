@@ -1,6 +1,5 @@
 import utils from "../utils.js";
 import globals from "../Globals/Globals.js";
-import ViewModelProperty from "./Property.js";
 import DefinedProperty from "./DefinedProperty.js";
 import {Component} from "../Component/WebComponent.js";
 
@@ -130,13 +129,11 @@ export default class {
     const setOfPrivateProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("__")));
     const setOfContextProps = new Set(Object.keys(viewModel).filter(prop => prop[0] === "$" && prop[1] !== "$"));
     const importProps = [];
-    //const arrayProps = [];
 
     const createDesc = (prop, value = null) => {
       const paths = prop.split(".");
       if (paths.length > 1) {
         const last = paths.pop();
-//        const path = paths.join(".");
         const path = prop.slice(0, - last.length - 1);
         descByProp.set(prop, createDefaultDesc(component)(path, last));
       } else {
@@ -185,7 +182,6 @@ export default class {
     removeProps.forEach(prop => delete viewModel[prop]);
     for(const [prop, desc] of descByProp.entries()) {
       Object.defineProperty(viewModel, prop, desc);
-      ViewModelProperty.create(prop);
     }
     const publicProps = Object.keys(viewModel).concat(importProps);
     // 配列と思われるプロパティの取得

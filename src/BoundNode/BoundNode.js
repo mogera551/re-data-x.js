@@ -1,4 +1,3 @@
-import ViewModelProperty from "../ViewModel/Property.js";
 import utils from "../utils.js";
 import ParseFunc from "./ParseFunc.js";
 import NodeSelector from "./NodeSelector.js";
@@ -9,6 +8,7 @@ import Filter from "../Filter/Filter.js";
 import FilterData from "../Filter/FilterData.js";
 import Proxy from "../ViewModel/Proxy.js";
 import FileReaderEx from "./FileReaderEx.js";
+import ActiveProperty from "../ViewModel/ActiveProperty.js";
 
 const setOfInputableTagName = new Set(["INPUT", "SELECT", "TEXTAREA", "OPTION"]);
 const setOfCheckableTypeName = new Set(["radio", "checkbox"]);
@@ -147,7 +147,7 @@ export default class BoundNode {
    * ViewModelとDOM要素のプロパティの対応
    * １：多はありうる、optionのvalueとtextContentに同じものを使うなど
    * 多：１はなし
-   * @type {Map<string,ViewModelProperty>}
+   * @type {Map<string,ActiveProperty>}
    */
   viewModelPropByProp = new Map();
   /**
@@ -168,7 +168,7 @@ export default class BoundNode {
   pathsByProp = new Map();
 
   /**
-   * @type {ViewModelProperty}
+   * @type {ActiveProperty}
    */
   loopViewModelProp = null;
   /**
@@ -180,7 +180,7 @@ export default class BoundNode {
   // １：１
   // Event
   /**
-   * @type {Map<ViewModelProperty,string>}
+   * @type {Map<string,string>}
    */
   viewModelHandlerByEvent = new Map();
 
@@ -209,10 +209,11 @@ export default class BoundNode {
     const loopChildren = this.loopChildren;
     const component = this.parentComponent;
     const fragment = document.createDocumentFragment();
-    const viewModelValue = ViewModelProperty.getValue(viewModelProxy, loopViewModelProp);
+    
+    const viewModelValue = ActiveProperty.getValue(viewModelProxy, loopViewModelProp);
     for(const [key, value] of Object.entries(viewModelValue)) {
       const child = new LoopChild;
-      const newIndexes = loopViewModelProp.level === 0 ? [key] : loopViewModelProp.indexes.concat(key);
+      const newIndexes = loopViewModelProp.definedProp.level === 0 ? [key] : loopViewModelProp.indexes.concat(key);
       const childRoot = document.importNode(template.content, true); // See http://var.blog.jp/archives/76177033.html
       const boundNodes = NodeSelector.select(component, childRoot, template, loopNode, newIndexes);
       loopChildren.push(child);
@@ -242,7 +243,7 @@ export default class BoundNode {
    */
   #parseLoop(bindText) {
     const viewModelPropName = bindText.trim();
-    this.loopViewModelProp = ViewModelProperty.create(viewModelPropName, this.viewModelIndexes);
+    this.loopViewModelProp = ActiveProperty.create(viewModelPropName, this.viewModelIndexes);
   }
 
   /**
@@ -252,13 +253,13 @@ export default class BoundNode {
    * @param {string} viewModelPropName 
    * @param {integer[]} viewModelIndexes 
    * @param {FilterData[]} filters 
-   * @param {Object<string,any?} params
+   * @param {Object<string,any>?} params
    */
   #bindProp(propName, viewModelPropName, viewModelIndexes, filters, params = {}) {
     const viewModelPropByProp = this.viewModelPropByProp;
     const propsByViewModelPath = this.propsByViewModelPath;
     const pathsByProp = this.pathsByProp;
-    const viewModelProp = ViewModelProperty.create(viewModelPropName, viewModelIndexes);
+    const viewModelProp = ActiveProperty.create(viewModelPropName, viewModelIndexes);
     viewModelPropByProp.set(propName, {viewModelProp, filters});
     const props = propsByViewModelPath.get(viewModelProp.path);
     props ? props.push(propName) : propsByViewModelPath.set(viewModelProp.path, [propName]);
@@ -303,8 +304,8 @@ export default class BoundNode {
         // 親コンポーネントがある場合、親コンポーネントのプロパティを参照する
         component.viewModelProxy.$addImportProp(propName); // キャッシュしないようにする
         Object.defineProperty(component.viewModel, propName, {
-          get: () => ViewModelProperty.getValue(viewModelProxy, viewModelProp),
-          set: value => ViewModelProperty.setValue(viewModelProxy, viewModelProp, value),
+          get: () => ActiveProperty.getValue(viewModelProxy, viewModelProp),
+          set: value => ActiveProperty.setValue(viewModelProxy, viewModelProp, value),
         });
       } else {
         // 親コンポーネントがない場合、グローバルのプロパティを参照する
@@ -325,8 +326,7 @@ export default class BoundNode {
     const viewModelHandlerByEvent = this.viewModelHandlerByEvent;
     ParseFunc.parseBinds(bindText ?? "", this.defaultProperty).forEach(([propName, viewModelPropName, filters]) => {
       if (propName.startsWith("on")) {
-        const viewModelProp = ViewModelProperty.create(viewModelPropName, viewModelIndexes);
-        viewModelHandlerByEvent.set(propName, viewModelProp);
+        viewModelHandlerByEvent.set(propName, viewModelPropName);
       } else {
         this.#bindProp(propName, viewModelPropName, viewModelIndexes, filters);
       }
@@ -383,14 +383,14 @@ export default class BoundNode {
   /**
    * ノードプロパティが１階層の場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateNode1(viewModel, viewModelProp, node, nodeProp, paths, filters) {
-    const value = Filter.applyForOutput(ViewModelProperty.getValue(viewModel, viewModelProp), filters);
+    const value = Filter.applyForOutput(ActiveProperty.getValue(viewModel, viewModelProp), filters);
     Thread.current.updateNode(node, [nodeProp], () => {
       node[nodeProp] = value;
     });
@@ -399,14 +399,14 @@ export default class BoundNode {
   /**
    * ノードプロパティが２階層の場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateNode2(viewModel, viewModelProp, node, nodeProp, paths, filters) {
-    const value = Filter.applyForOutput(ViewModelProperty.getValue(viewModel, viewModelProp), filters);
+    const value = Filter.applyForOutput(ActiveProperty.getValue(viewModel, viewModelProp), filters);
     Thread.current.updateNode(node, paths, () => {
       node[paths[0]][paths[1]] = value;
     });
@@ -415,7 +415,7 @@ export default class BoundNode {
   /**
    * ノードプロパティがクラス指定の場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
@@ -423,7 +423,7 @@ export default class BoundNode {
    */
   #updateNodeClass(viewModel, viewModelProp, node, nodeProp, paths, filters) {
     const element = utils.toElement(node);
-    const value = Filter.applyForOutput(ViewModelProperty.getValue(viewModel, viewModelProp), filters);
+    const value = Filter.applyForOutput(ActiveProperty.getValue(viewModel, viewModelProp), filters);
     Thread.current.updateNode(node, ["classList"], () => {
       value ? element.classList.add(paths[1]) : element.classList.remove(paths[1]);
     });
@@ -432,7 +432,7 @@ export default class BoundNode {
   /**
    * ノードプロパティがラジオの場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
@@ -440,7 +440,7 @@ export default class BoundNode {
    */
   #updateNodeRadio(viewModel, viewModelProp, node, nodeProp, paths, filters) {
     const element = utils.toElement(node);
-    const value = Filter.applyForOutput(ViewModelProperty.getValue(viewModel, viewModelProp), filters);
+    const value = Filter.applyForOutput(ActiveProperty.getValue(viewModel, viewModelProp), filters);
     Thread.current.updateNode(node, ["checked"], () => {
       element.checked = element.value == value;
     });
@@ -449,7 +449,7 @@ export default class BoundNode {
   /**
    * ノードプロパティがチェックボックスの場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
@@ -457,7 +457,7 @@ export default class BoundNode {
    */
   #updateNodeCheckbox(viewModel, viewModelProp, node, nodeProp, paths, filters) {
     const element = utils.toElement(node);
-    const values = Filter.applyForOutput(ViewModelProperty.getValue(viewModel, viewModelProp), filters);
+    const values = Filter.applyForOutput(ActiveProperty.getValue(viewModel, viewModelProp), filters);
     Thread.current.updateNode(node, ["checked"], () => {
       element.checked = values.find(value => value == element.value) ? true : false;
     });
@@ -466,7 +466,7 @@ export default class BoundNode {
   /**
    * ノードプロパティがファイルの場合のノード更新処理
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {Node} node ノード
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
@@ -502,11 +502,11 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateViewModel1(node, nodeProp, paths, viewModel, viewModelProp, filters) {
-    ViewModelProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(node[nodeProp], filters));
+    ActiveProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(node[nodeProp], filters));
   }
 
   /**
@@ -515,11 +515,11 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateViewModel2(node, nodeProp, paths, viewModel, viewModelProp, filters) {
-    ViewModelProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(node[paths[0]][paths[1]], filters));
+    ActiveProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(node[paths[0]][paths[1]], filters));
   }
 
   /**
@@ -529,7 +529,7 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateViewModelClass(node, nodeProp, paths, viewModel, viewModelProp, filters) {
@@ -542,12 +542,12 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateViewModelRadio(node, nodeProp, paths, viewModel, viewModelProp, filters) {
     const element = utils.toElement(node);
-    element.checked && ViewModelProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(element.value, filters));
+    element.checked && ActiveProperty.setValue(viewModel, viewModelProp, Filter.applyForInput(element.value, filters));
   }
 
   /**
@@ -556,12 +556,12 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   #updateViewModelCheckbox(node, nodeProp, paths, viewModel, viewModelProp, filters) {
     const element = utils.toElement(node);
-    const values = ViewModelProperty.getValue(viewModel, viewModelProp);
+    const values = ActiveProperty.getValue(viewModel, viewModelProp);
     const value = Filter.applyForInput(element.value, filters);
     if (element.checked) {
       values.push(value);
@@ -577,7 +577,7 @@ export default class BoundNode {
    * @param {string} nodeProp ノードのプロパティ
    * @param {string[]} paths ノードプロパティを.で区切ったもの
    * @param {Object} viewModel ViewModel
-   * @param {ViewModelProperty} viewModelProp ViewModelのプロパティ
+   * @param {ActiveProperty} viewModelProp ViewModelのプロパティ
    * @param {FilterData[]} filters フィルターのリスト
    */
   async #updateViewModelFile(node, nodeProp, paths, viewModel, viewModelProp, filters) {
@@ -586,7 +586,7 @@ export default class BoundNode {
     const reader = new FileReaderEx();
     const data = await reader.readAsText(input.files[0]);
     const value = Filter.applyForInput(data, filters);
-    ViewModelProperty.setValue(viewModel, viewModelProp, value);
+    ActiveProperty.setValue(viewModel, viewModelProp, value);
   }
 
   /**
@@ -595,7 +595,7 @@ export default class BoundNode {
    * @param {Node} node 
    * @param {string} prop 
    * @param {Object} viewModel 
-   * @param {ViewModelProperty} viewModelProp 
+   * @param {ActiveProperty} viewModelProp 
    * @param {Array<FilterData>} filters 
    */
   #updateViewModel(node, prop, viewModel, viewModelProp, filters) {
@@ -651,7 +651,7 @@ export default class BoundNode {
         event.stopPropagation();
         Thread.current.asyncProc(() => {
           return component.stackIndexes.push(viewModelIndexes, () => {
-            return Reflect.apply(viewModelProxy[viewModelHandler.path], viewModelProxy, [ event, ...viewModelIndexes ]);
+            return Reflect.apply(viewModelProxy[viewModelHandler], viewModelProxy, [ event, ...viewModelIndexes ]);
           });
         }, this, []);
       });

@@ -270,9 +270,9 @@ export default class BaseComponent extends HTMLElement {
    * @type {Map<string,ActiveProperty>}
    */
   updateActiveProperty() {
-    console.time("ActiveProperty.buildByViewModel");
+    console.time("ActiveProperty.create");
     this.activeProperties = ActiveProperties.create(this.viewModelProxy);
-    console.timeEnd("ActiveProperty.buildByViewModel");
+    console.timeEnd("ActiveProperty.create");
   }
   /**
    * 接続時コールバック
