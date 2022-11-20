@@ -26,7 +26,7 @@ class ViewModel {
     this.selected = null;
   }
   add() {
-    this.list = this.list.concat(buildData(1000));
+    this.list.push(...buildData(1000));
   }
   update() {
     for(let i = 0; i < this.list.length; i+= 10) {
