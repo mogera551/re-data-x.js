@@ -4,13 +4,20 @@
     <input data-bind="title">
     <button type="button" data-bind="onclick:search; disabled:title|falsey">search</button>
   </div>
-  <table>
-    <template data-bind="animes">
-      <tr class="anime">
-        <td>{animes.*.anime}</td>
-        <td>{animes.*.character}</td>
-        <td>{animes.*.quote}</td>
-      </tr>
-    </template>
+  <table class="table table-striped">
+    <colgroup>
+      <col class="col-md-2">
+      <col class="col-md-2">
+      <col class="col-md-8">
+    </colgroup>
+    <tbody>
+      <template data-bind="animes">
+        <tr>
+          <td class="text-left">{animes.*.anime}</td>
+          <td class="text-left">{animes.*.character}</td>
+          <td class="text-left">{animes.*.quote}</td>
+        </tr>
+      </template>
+    </tbody>
   </table>
 </main>

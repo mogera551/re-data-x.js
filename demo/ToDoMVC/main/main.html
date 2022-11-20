@@ -1,0 +1,29 @@
+<div>
+  <input data-bind="content; onkeypress:enter">
+</div>
+
+<div>
+  <ul>
+    <template data-bind="todos">
+      <li>
+        <div class="view">
+          <input type="checkbox" data-bind="todos.*.completed; oninput:complete">
+          <label data-bind="class.completed:todos.*.completed">{todos.*.content}</label>
+          <button type="button" data-bind="onclick:delete">X</button>
+        </div>
+      </li>
+    </template>
+  </ul>
+
+  <div>
+    <label>
+      <input type="radio" value="all" data-bind="radio:status">all
+    </label>
+    <label>
+      <input type="radio" value="active" data-bind="radio:status">active
+    </label>
+    <label>
+      <input type="radio" value="completed" data-bind="radio:status">completed
+    </label>
+  </div>
+</div>

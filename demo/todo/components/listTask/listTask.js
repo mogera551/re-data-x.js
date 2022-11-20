@@ -1,5 +1,4 @@
 import html from "../../../../dist/importText.js?path=./components/listTask/listTask.html";
-import css from "../../../../dist/importText.js?path=./components/listTask/listTask.css";
 import Task from "../../Task.js";
 
 class ViewModel {
@@ -24,4 +23,4 @@ class ViewModel {
 
 }
 
-export default { ViewModel, html, css }
+export default { ViewModel, html }
