@@ -206,6 +206,7 @@ export default class BaseComponent extends HTMLElement {
       const boundNode = BoundNode.create(this.componentForDialog, this);
       boundNode.parse([], this.paramsForDialog);
       await this.viewModelProxy.$init();
+      this.updateActiveProperty();
       boundNode.init();
       this.view.render();
     }, this, []);
@@ -220,6 +221,7 @@ export default class BaseComponent extends HTMLElement {
       const boundNode = BoundNode.create(null, this);
       boundNode.parse([]);
       await this.viewModelProxy.$init();
+      this.updateActiveProperty();
       boundNode.init();
       Binder.rootBinder.add(boundNode);
       this.view.render();
@@ -237,6 +239,7 @@ export default class BaseComponent extends HTMLElement {
     Thread.current.asyncProc(async () => {
       await this.parentComponent.initializePromise;
       await this.viewModelProxy.$init();
+      this.updateActiveProperty();
       this.view.render();
     }, this, []);
   }
@@ -254,7 +257,6 @@ export default class BaseComponent extends HTMLElement {
       } else {
         await this.defaultComponentInit();
       }
-      this.updateActiveProperty();
     } finally {
       this.#isInitializing = false;
       this.#initializeResolve(true);

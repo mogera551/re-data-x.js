@@ -297,8 +297,8 @@ export default class BoundNode {
       if ("dialog" in component.dataset) {
         // ダイアログの場合、入力パラメータを参照
         Object.defineProperty(component.viewModel, propName, {
-          get: () => Reflect.get(params, viewModelProp.prop),
-          set: value => Reflect.set(params, viewModelProp.prop, value),
+          get: () => Reflect.get(params, viewModelProp.name),
+          set: value => Reflect.set(params, viewModelProp.name, value),
         });
       } else if (viewModelProxy) {
         // 親コンポーネントがある場合、親コンポーネントのプロパティを参照する
@@ -310,8 +310,8 @@ export default class BoundNode {
       } else {
         // 親コンポーネントがない場合、グローバルのプロパティを参照する
         Object.defineProperty(component.viewModel, propName, {
-          get: () => Reflect.get(globalData, viewModelProp.prop),
-          set: value => Reflect.set(globalData, viewModelProp.prop, value),
+          get: () => Reflect.get(globalData, viewModelProp.name),
+          set: value => Reflect.set(globalData, viewModelProp.name, value),
         });
       }
     }

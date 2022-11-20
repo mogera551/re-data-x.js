@@ -97,7 +97,7 @@ export default class ActiveProperties extends Map {
     const definedPropsByLevel = definedProps.reduce((map, prop) => map.has(prop.level) ? (map.get(prop.level).push(prop), map) : map.set(prop.level, [prop]), new Map);
     // レベル毎に処理
     for(let level = 0; level <= maxLevel; level++) {
-      const sameLevelDefinedProps = definedPropsByLevel.get(level);
+      const sameLevelDefinedProps = definedPropsByLevel.get(level) ?? [];
       if (level === 0) {
         sameLevelDefinedProps.forEach(prop => expandsByName.set(prop.name, [createActiveProperty(prop.name)]));
         continue;
