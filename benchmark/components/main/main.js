@@ -11,8 +11,9 @@ class ViewModel {
   }
 
   "selected" = null;
-  selectItem() {
-    this.selected = this["list.*.id"];
+
+  selectItem(e, $1) {
+    this.selected = this.list[$1].id;
   }
   removeItem(e, $1) {
     this.list.splice($1, 1);
@@ -29,7 +30,7 @@ class ViewModel {
     this.list.push(...buildData(1000));
   }
   update() {
-    for(let i = 0; i < this.list.length; i+= 10) {
+    for(let i = 0; i < this.list.length; i += 10) {
       this[`list.${i}.label`] += ` !!!`;     
     }
   }
