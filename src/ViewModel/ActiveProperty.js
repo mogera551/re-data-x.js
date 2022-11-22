@@ -39,14 +39,17 @@ export default class ActiveProperty {
    * 
    * @param {DefinedProperty} definedProp 
    * @param {string} path
-   * @param {integer[]}
+   * @param {integer[]} indexes
+   * @param {string} indexesString
+   * @param {string} key
    */
-  constructor(definedProp, path, indexes = []) {
+  constructor(definedProp, path, indexes, indexesString, key) {
     this.definedProp = definedProp;
     this.name = definedProp.name
     this.path = path;
     this.indexes = indexes;
-    this.indexesString = indexes.toString();
+    this.indexesString = indexesString;
+    this.key = key;
     this.indexesStrings = Array(indexes.length);
     for(let i = 0; i < indexes.length; i++) this.indexesStrings[i] = indexes.slice(0, i + 1).toString();
     this.parentPath = utils.getPath(definedProp.parentPath, indexes);
@@ -60,13 +63,15 @@ export default class ActiveProperty {
    * @returns {ActiveProperty}
    */
   static create(name, indexes = []) {
-    const path = utils.getPath(name, indexes);
-    if (this.propByPath.has(path)) {
-      return this.propByPath.get(path);
+    const indexesString = indexes.toString();
+    const key = name + "\t" + indexesString;
+    if (this.propByPath.has(key)) {
+      return this.propByPath.get(key);
     } else {
+      const path = utils.getPath(name, indexes);
       const definedProp = DefinedProperty.create(name);
-      const activeProperty = new ActiveProperty(definedProp, path, indexes);
-      this.propByPath.set(path, activeProperty);
+      const activeProperty = new ActiveProperty(definedProp, path, indexes, indexesString, key);
+      this.propByPath.set(key, activeProperty);
       return activeProperty;
     }
   }

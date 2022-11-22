@@ -38,10 +38,12 @@ export default class ActiveProperties extends Map {
    * 
    */
   build() {
+//    console.time("ActiveProperties.build");
     const mapByName = this.activePropertiesByName;
     this.forEach(prop => mapByName.has(prop.name) ? mapByName.get(prop.name).push(prop) : mapByName.set(prop.name, [prop]));
     const mapByPath = this.activePropertiesByParentPath;
     this.forEach(prop => mapByPath.has(prop.parentPath) ? mapByPath.get(prop.parentPath).push(prop) : mapByPath.set(prop.parentPath, [prop]));
+//    console.timeEnd("ActiveProperties.build");
   }
 
   /**
@@ -78,17 +80,6 @@ export default class ActiveProperties extends Map {
      */
     const listActiveProperty = [];
     /**
-     * 
-     * @param {string} name 
-     * @param {integer[]} indexes 
-     * @returns {ActiveProperty}
-     */
-    const createActiveProperty = (name, indexes) => {
-      const activeProperty = ActiveProperty.create(name, indexes);
-      listActiveProperty.push(activeProperty);
-      return activeProperty;
-    }
-    /**
      * @type {Map<string,ActiveProperty[]>}
      */
     const expandsByName = new Map();
@@ -99,7 +90,12 @@ export default class ActiveProperties extends Map {
     for(let level = 0; level <= maxLevel; level++) {
       const sameLevelDefinedProps = definedPropsByLevel.get(level) ?? [];
       if (level === 0) {
-        sameLevelDefinedProps.forEach(prop => expandsByName.set(prop.name, [createActiveProperty(prop.name)]));
+        const expandProps = sameLevelDefinedProps.map(prop => {
+          const activeProperty = ActiveProperty.create(prop.name);
+          expandsByName.set(activeProperty.name, [activeProperty]);
+          return activeProperty;
+        });
+        listActiveProperty.push(...expandProps);
         continue;
       }
       // 展開可能な定義済みプロパティ → 最後が＊で終わっているもの ex. list.*、list.*.names.*など
@@ -113,19 +109,20 @@ export default class ActiveProperties extends Map {
         // 展開可能な定義済みプロパティの親要素（すでに展開されている）の展開したプロパティ
         // ex. 展開可能な定義済みプロパティの親要素：list.*.names
         //     展開したプロパティ：list.0.names、list.1.names、list.2.names
-        const parentProps = expandsByName.get(expandableProp.parentPath);
+        const arrayProps = expandsByName.get(expandableProp.parentPath);
         targetDefinedProps.forEach(definedProp => {
           const expandPropsOnTarget = [];
-          parentProps.forEach(parentProp => {
+          arrayProps.forEach(arrayProp => {
             // 展開したプロパティの値のインデックス配列を取得
             // ex. list.0.namesの値のインデックス配列
             //     list.1.namesの値のインデックス配列
             //     list.n.namesの値のインデックス配列
-            const indexes = getKeys(parentProp.name, parentProp.indexes, parentProp.path);
+            const indexes = getKeys(arrayProp.name, arrayProp.indexes, arrayProp.path);
             // インデックス配列分ループ
-            indexes.forEach(index => expandPropsOnTarget.push(createActiveProperty(definedProp.name, parentProp.indexes.concat(index))));
+            expandPropsOnTarget.push(...indexes.map(index => ActiveProperty.create(definedProp.name, arrayProp.indexes.concat(index))));
           });
           expandsByName.set(definedProp.name, expandPropsOnTarget);
+          listActiveProperty.push(...expandPropsOnTarget);
         })
       })
     }

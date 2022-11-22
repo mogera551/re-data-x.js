@@ -229,12 +229,17 @@ export default class BoundNode {
    * ループの再展開
    */
   #reexpandLoop() {
+    const clone = this.element.parentElement.cloneNode();
+    this.element.parentElement.replaceWith(clone);
+//    console.time("removeNodes");
     this.loopChildren.forEach(loopChild => loopChild.removeNodes());
     this.loopChildren = [];
+//    console.timeEnd("removeNodes");
     this.#expandLoop();
     for(const loopChild of this.loopChildren) {
       loopChild.init();
     }
+    clone.replaceWith(this.element.parentElement);
   }
 
   /**

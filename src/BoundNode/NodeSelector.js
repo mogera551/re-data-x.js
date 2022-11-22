@@ -44,16 +44,17 @@ export default class NodeSelector {
     const createBoundNode = node => {
       const boundNode = BoundNode.create(parentComponent, node, loopNode);
       boundNode.parse(indexes);
-      boundNodes.push(boundNode);
+      return boundNode;
     };
 
     if (this.listOfRouteIndexesByTemplate.has(template)) {
       // キャッシュがある場合
       // querySelectorAllをせずにNodeの位置を特定できる
       const listOfRouteIndexes = this.listOfRouteIndexesByTemplate.get(template);
-      const elements = listOfRouteIndexes.map(routeIndexes => routeIndexes.reduce((node, routeIndex) => node.childNodes[routeIndex], documentRoot));
+      const nodes = listOfRouteIndexes.map(routeIndexes => routeIndexes.reduce((node, routeIndex) => node.childNodes[routeIndex], documentRoot));
+
       // BoundNodeを作成する
-      elements.forEach(e => createBoundNode(e));
+      boundNodes.push(...nodes.map(node => createBoundNode(node)));
     } else {
       /**
        * @type {Node[]}
@@ -68,10 +69,8 @@ export default class NodeSelector {
        * @type {HTMLElement[]}
        */
       const elements = Array.from(documentRoot.querySelectorAll(SELECTOR));
-      elements.forEach(e => {
-        // ルートから、nodeのインデックスの順番をキャッシュに覚えておく
-        listOfRouteIndexes.push(getNodeRoute(e));
-      });
+      // ルートから、nodeのインデックスの順番をキャッシュに覚えておく
+      listOfRouteIndexes.push(...elements.map(element => getNodeRoute(element)));
 
       /**
        * @type {Comment[]}
@@ -82,14 +81,14 @@ export default class NodeSelector {
         walk_(node);
       });
       walk_(documentRoot);
-      commentNodes.map(node => listOfRouteIndexes.push(getNodeRoute(node)));
+      listOfRouteIndexes.push(...commentNodes.map(node => getNodeRoute(node)));
   
       this.listOfRouteIndexesByTemplate.set(template, listOfRouteIndexes);
       nodes.push(...elements);
       nodes.push(...commentNodes);
   
       // BoundNodeを作成する
-      nodes.forEach(e => createBoundNode(e));
+      boundNodes.push(...nodes.map(node => createBoundNode(node)));
     }
 
     //console.log(comments);
