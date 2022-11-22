@@ -50,7 +50,7 @@ class LoopChild {
    * 親ノードからノードを削除
    */
   removeNodes() {
-    this.nodes.forEach(node => node.parentNode.removeChild(node));
+    this.nodes.forEach(node => node.parentNode && node.parentNode.removeChild(node));
     this.nodes.splice(0);
   }
   
