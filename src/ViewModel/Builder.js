@@ -2,6 +2,7 @@ import utils from "../utils.js";
 import globals from "../Globals/Globals.js";
 import DefinedProperty from "./DefinedProperty.js";
 import {Component} from "../Component/WebComponent.js";
+import CheckPoint from "../CheckPoint/CheckPoint.js";
 
 /**
  * デフォルトのgetter
@@ -9,10 +10,11 @@ import {Component} from "../Component/WebComponent.js";
  * @param {Proxy?} viewModelProxy 
  * @returns {(path:string,last:string)=>(()=>any)}
  */
-const defaultGetter = (component, viewModelProxy = component.viewModelProxy) => (path, last) => () => {
+const defaultGetter = (component, path, last, level, viewModelProxy = component.viewModelProxy) => () => {
   const indexes = component.stackIndexes.current ?? [];
-  const lastIndex = (last === "*") ? indexes.at(path.match(/\*/g)?.length) : last;
-  return viewModelProxy[path]?.[lastIndex];
+  const lastIndex = (last === "*") ? indexes[level] : last;
+  const result = viewModelProxy[path]?.[lastIndex];
+  return result;
 }
 
 /**
@@ -21,9 +23,9 @@ const defaultGetter = (component, viewModelProxy = component.viewModelProxy) => 
  * @param {Proxy} viewModelProxy 
  * @returns {(path:string,last:string)=>((value:any)=>true)}
  */
-const defaultSetter = (component, viewModelProxy = component.viewModelProxy) => (path, last) => value => {
+const defaultSetter = (component, path, last, level, viewModelProxy = component.viewModelProxy) => value => {
   const indexes = component.stackIndexes.current ?? [];
-  const lastIndex = (last === "*") ? indexes.at(path.match(/\*/g)?.length) : last;
+  const lastIndex = (last === "*") ? indexes[level] : last;
   viewModelProxy[path][lastIndex] = value;
   return true;
 }
@@ -35,8 +37,7 @@ const defaultSetter = (component, viewModelProxy = component.viewModelProxy) => 
  * @returns {(path:string)=>(()=>any)}
  */
 const defaultGetterPrimitive = (component, viewModelProxy = component.viewModelProxy) => path => () => {
-  const privatePath = `__${path}`;
-  return viewModelProxy?.[privatePath];
+  return viewModelProxy?.["__" + path];
 }
 
 /**
@@ -46,8 +47,7 @@ const defaultGetterPrimitive = (component, viewModelProxy = component.viewModelP
  * @returns {(path:string)=>((value:any)=>true)}
  */
 const defaultSetterPrimitive = (component, viewModelProxy = component.viewModelProxy) => path => value => {
-  const privatePath = `__${path}`;
-  viewModelProxy[privatePath] = value;
+  viewModelProxy["__" + path] = value;
   return true;
 }
 
@@ -81,11 +81,10 @@ const applySetter = (component, viewModelProxy = component.viewModelProxy) => se
 }
 
 const createDefaultDesc = 
-  component => 
-  (path, last) => {
+  (component, path, last, level) => {
     return {
-      get: () => defaultGetter(component)(path, last)(),
-      set: v => defaultSetter(component)(path, last)(v),
+      get: () => defaultGetter(component, path, last, level)(),
+      set: v => defaultSetter(component, path, last, level)(v),
       enumerable: true, 
       configurable: true,
     }
@@ -135,7 +134,7 @@ export default class {
       if (paths.length > 1) {
         const last = paths.pop();
         const path = prop.slice(0, - last.length - 1);
-        descByProp.set(prop, createDefaultDesc(component)(path, last));
+        descByProp.set(prop, createDefaultDesc(component, path, last, path.match(/\*/g)?.length ?? 0));
       } else {
         const path = prop;
         if (path.startsWith("$$")) {

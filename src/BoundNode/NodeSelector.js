@@ -37,6 +37,7 @@ export default class NodeSelector {
    * @returns {BoundNode[]} BoundNodeの配列を返す
    */
   static select(parentComponent, documentRoot, template, loopNode = null, indexes = []) {
+    //console.time("NodeSelector.select");
     /**
      * @type {BoundNode[]}
      */
@@ -77,7 +78,7 @@ export default class NodeSelector {
        */
       const commentNodes = [];
       const walk_ = (node) => node.childNodes.forEach(node => {
-        node instanceof Comment && node.textContent.startsWith("@@") && commentNodes.push(node);
+        node instanceof Comment && node.textContent[0] === "@" && node.textContent[1] === "@" && commentNodes.push(node);
         walk_(node);
       });
       walk_(documentRoot);
@@ -90,6 +91,7 @@ export default class NodeSelector {
       // BoundNodeを作成する
       boundNodes.push(...nodes.map(node => createBoundNode(node)));
     }
+    //console.timeEnd("NodeSelector.select");
 
     //console.log(comments);
 

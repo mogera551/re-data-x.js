@@ -125,7 +125,9 @@ export default class {
         const setOfNotificationPaths = new Set(notificationByPath.keys());
         viewModelProxy.$deleteCache(setOfNotificationPaths);
         //console.log(component.tagName, Array.from(setOfNotifications).join(","));
+        //console.time("component.binder.update");
         component.binder.update(setOfNotificationPaths, new Set);
+        //console.timeEnd("component.binder.update");
         if ("$onChange" in viewModelProxy ?? {}) {
           viewModelProxy.$asyncProc(async () => {
             await viewModelProxy.$onChange(Array.from(notificationByPath.values()));

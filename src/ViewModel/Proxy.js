@@ -2,6 +2,7 @@ import Thread from "../Thread/Thread.js";
 import Builder from "./Builder.js";
 import utils from "../utils.js";
 import WebComponent, { Component } from "../Component/WebComponent.js";
+import CheckPoint from "../CheckPoint/CheckPoint.js";
 
 /**
  * @type {Symbol}
@@ -49,6 +50,7 @@ class Cache extends Map {
     super();
     this.#component = component;
   }
+/*
   has(key) {
     const result = super.has(key);
     this.#debug && !utils.isSymbol(key) && console.log(`cache.has(${key}) = ${result}, ${this.#component?.tagName}`);
@@ -64,6 +66,7 @@ class Cache extends Map {
     this.#debug && !utils.isSymbol(key) && console.log(`cache.delete(${key}) = ${result}, ${this.#component?.tagName}`);
     return result;
   }
+*/
 
   /**
    * 要素の追加、更新
@@ -233,14 +236,18 @@ class Handler {
     path = path ?? utils.getPath(prop, indexes);
     const cache = this.cache;
     const component = this.component;
+    let result;
     if (cache.has(path)) {
-      return wrapArrayProxy(component, prop, cache.get(path));
+      result = wrapArrayProxy(component, prop, cache.get(path));
+    } else {
+      result = component.stackIndexes.push(indexes, function () { 
+        const value = Reflect.get(target, prop, receiver);
+        cache.set(path, value);
+        const result = wrapArrayProxy(component, prop, value);
+        return result;
+      });
     }
-    return component.stackIndexes.push(indexes, function () { 
-      const value = Reflect.get(target, prop, receiver);
-      cache.set(path, value);
-      return wrapArrayProxy(component, prop, value);
-    });
+    return result;
   }
 
   /**
@@ -392,30 +399,41 @@ class Handler {
    * @returns 
    */
   get(target, prop, receiver) {
-    if (SET_OF_PROXY_METHODS.has(prop)) {
-      return (...args) => Reflect.apply(this[prop], this, [...args, target, receiver]);
-    }
-    if (SET_OF_PROXY_MEMBERS.has(prop)) {
-      const getMemberFunc = getMemberFuncOfProp.get(prop);
-      if (getMemberFunc) return getMemberFunc(this);
-      if (utils.isSymbol(prop)) {
-        return Reflect.get(this, prop);
+    if (prop in target) {
+      if (prop.includes("*")) {
+        const value = Reflect.get(target, prop, receiver);
+        const result = wrapArrayProxy(this.component, prop, value);
+        return result;
+      } else {
+        if (this.cache.has(prop)) {
+          return wrapArrayProxy(this.component, prop, this.cache.get(prop));
+        }
+        const value = Reflect.get(target, prop, receiver);
+        this.cache.set(prop, value);
+        const result = wrapArrayProxy(this.component, prop, value);
+        return result;
       }
-      return this.component.stackIndexes.current[parseInt(prop.slice(1)) - 1];
-    }
-
-    if (this.cache.has(prop)) {
-      return wrapArrayProxy(this.component, prop, this.cache.get(prop));
-    }
-    if (!(prop in target)) {
-      if (this.component.activeProperties.has(prop)) {
+    } else {
+      if (this.component.activeProperties?.has(prop)) {
         const activeProperty = this.component.activeProperties.get(prop);
         return this.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path, target, receiver);
       }
+
     }
-    const value = Reflect.get(target, prop, receiver);
-    this.cache.set(prop, value);
-    return wrapArrayProxy(this.component, prop, value);
+
+    if (prop[0] === "$") {
+      if (SET_OF_PROXY_METHODS.has(prop)) {
+        return (...args) => Reflect.apply(this[prop], this, [...args, target, receiver]);
+      }
+      if (SET_OF_PROXY_MEMBERS.has(prop)) {
+        const getMemberFunc = getMemberFuncOfProp.get(prop);
+        if (getMemberFunc) return getMemberFunc(this);
+        if (utils.isSymbol(prop)) {
+          return Reflect.get(this, prop);
+        }
+        return this.component.stackIndexes.current[parseInt(prop.slice(1)) - 1];
+      }
+    }
   }
 
   /**
@@ -454,8 +472,10 @@ class Handler {
    * @returns 
    */
   has(target, prop, receiver) {
-    if (SET_OF_PROXY_METHODS.has(prop)) return true;
-    if (SET_OF_PROXY_MEMBERS.has(prop)) return true;
+    if (prop[0] === "$") {
+      if (SET_OF_PROXY_METHODS.has(prop)) return true;
+      if (SET_OF_PROXY_MEMBERS.has(prop)) return true;
+    }
     if (prop in target) return true;
     return Reflect.has(target, prop, receiver);
   }

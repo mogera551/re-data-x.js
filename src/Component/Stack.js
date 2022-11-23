@@ -26,6 +26,6 @@ export default class Stack {
    * @type {any}
    */
   get current() {
-    return this.stack.at(-1); 
+    return this.stack[this.stack.length - 1]; 
   }
 }
