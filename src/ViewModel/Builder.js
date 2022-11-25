@@ -10,16 +10,15 @@ import CheckPoint from "../CheckPoint/CheckPoint.js";
  * @param {Proxy?} viewModelProxy 
  * @returns {(path:string,last:string)=>(()=>any)}
  */
-const defaultGetter = (component, path, last, level, isParentPrimitive) => () => {
+const defaultGetter = (component, parentName, last, level) => () => {
   const viewModelProxy = component.viewModelProxy;
   const viewModel = component.viewModel;
+  const lastIndex = (last === "*") ? component.stackIndexes.current[level - 1] : last;
   let result;
-  if (isParentPrimitive) {
-    result = viewModelProxy[path];
+  if (level === 0) {
+    result = viewModelProxy[parentName][lastIndex];
   } else {
-    const indexes = component.stackIndexes.current ?? [];
-    const lastIndex = (last === "*") ? indexes[level] : last;
-    result = Reflect.get(viewModel, path, viewModelProxy)?.[lastIndex];
+    result = Reflect.get(viewModel, parentName, viewModelProxy)?.[lastIndex];
   }
   return result;
 }
@@ -30,15 +29,14 @@ const defaultGetter = (component, path, last, level, isParentPrimitive) => () =>
  * @param {Proxy} viewModelProxy 
  * @returns {(path:string,last:string)=>((value:any)=>true)}
  */
-const defaultSetter = (component, path, last, level, isParentPrimitive) => value => {
+const defaultSetter = (component, parentName, last, level) => value => {
   const viewModelProxy = component.viewModelProxy;
   const viewModel = component.viewModel;
-  if (isParentPrimitive) {
-    viewModelProxy[path] = value;
+  const lastIndex = (last === "*") ? component.stackIndexes.current[level - 1] : last;
+  if (level === 0) {
+    viewModelProxy[parentName][lastIndex] = value;
   } else {
-    const indexes = component.stackIndexes.current ?? [];
-    const lastIndex = (last === "*") ? indexes[level] : last;
-    Reflect.get(viewModel, path, viewModelProxy)[lastIndex] = value;
+    Reflect.get(viewModel, parentName, viewModelProxy)[lastIndex] = value;
   }
   return true;
 }
@@ -97,20 +95,24 @@ const applySetter = (component) => setter => value => {
   return Reflect.apply(setter, viewModelProxy, [value]);
 }
 
-const createDefaultDesc = 
-  (component, definedProperty) => {
-    const { path, last, level, isParentPrimitive } = definedProperty;
+/**
+ * 
+ * @param {Component} component 
+ * @param {DefinedProperty} definedProperty 
+ * @returns 
+ */
+const createDefaultDesc = (component, definedProperty) => {
+    const { parentPath, last, level } = definedProperty;
     return {
-      get: () => defaultGetter(component, path, last, level, isParentPrimitive)(),
-      set: v => defaultSetter(component, path, last, level, isParentPrimitive)(v),
+      get: () => defaultGetter(component, parentPath, last, level )(),
+      set: v => defaultSetter(component, parentPath, last, level )(v),
       enumerable: true, 
       configurable: true,
     }
   }
 ;
 
-const createDefaultPrimitiveDesc = 
-  (component, name) => {
+const createDefaultPrimitiveDesc = (component, name) => {
     return {
       get: () => defaultGetterPrimitive(component, name)(),
       set: v => defaultSetterPrimitive(component, name)(v),
@@ -120,11 +122,10 @@ const createDefaultPrimitiveDesc =
   }
 ;
 
-const createDefaultGlobalPrimitiveDesc = 
-  path => {
+const createDefaultGlobalPrimitiveDesc = name => {
     return {
-      get: () => defaultGetterGlobalPrimitive(path)(),
-      set: v => defaultSetterGlobalPrimitive(path)(v),
+      get: () => defaultGetterGlobalPrimitive(name)(),
+      set: v => defaultSetterGlobalPrimitive(name)(v),
       enumerable: true, 
       configurable: true,
     }
