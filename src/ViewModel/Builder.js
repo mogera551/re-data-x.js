@@ -7,8 +7,10 @@ import CheckPoint from "../CheckPoint/CheckPoint.js";
 /**
  * デフォルトのgetter
  * @param {Component} component 
- * @param {Proxy?} viewModelProxy 
- * @returns {(path:string,last:string)=>(()=>any)}
+ * @param {string} parentName
+ * @param {string} last
+ * @param {integer} level
+ * @returns {()=>any}
  */
 const defaultGetter = (component, parentName, last, level) => () => {
   const viewModelProxy = component.viewModelProxy;
@@ -26,8 +28,10 @@ const defaultGetter = (component, parentName, last, level) => () => {
 /**
  * デフォルトのsetter
  * @param {Component} component 
- * @param {Proxy} viewModelProxy 
- * @returns {(path:string,last:string)=>((value:any)=>true)}
+ * @param {string} parentName
+ * @param {string} last
+ * @param {integer} level
+ * @returns {(value:any)=>true}
  */
 const defaultSetter = (component, parentName, last, level) => value => {
   const viewModelProxy = component.viewModelProxy;
@@ -44,7 +48,8 @@ const defaultSetter = (component, parentName, last, level) => value => {
 /**
  * デフォルトのgetter
  * @param {Component} component 
- * @returns {(name:string)=>(()=>any)}
+ * @param {string} name 
+ * @returns {()=>any}
  */
 const defaultGetterPrimitive = (component, name) => () => {
   const viewModelProxy = component.viewModelProxy;
@@ -55,12 +60,13 @@ const defaultGetterPrimitive = (component, name) => () => {
 /**
  * デフォルトのsetter
  * @param {Component} component 
- * @returns {(name:string)=>((value:any)=>true)}
+ * @param {string} name 
+ * @returns {(value:any)=>true)}
  */
 const defaultSetterPrimitive = (component, name) => value => {
   const viewModelProxy = component.viewModelProxy;
   const viewModel = component.viewModel;
-  Reflect.set(viewModel, "__" + name, value, viewModelProxy)
+  Reflect.set(viewModel, "__" + name, value, viewModelProxy);
   return true;
 }
 
@@ -96,42 +102,58 @@ const applySetter = (component) => setter => value => {
 }
 
 /**
+ * @typedef {{getter:()=>any,setter:(value:any)=>boolean,enumerable:boolean,configurable:boolean}} PropertyDescriptor
+ */
+/**
  * 
  * @param {Component} component 
  * @param {DefinedProperty} definedProperty 
- * @returns 
+ * @returns {PropertyDescriptor}
  */
 const createDefaultDesc = (component, definedProperty) => {
-    const { parentPath, last, level } = definedProperty;
-    return {
-      get: () => defaultGetter(component, parentPath, last, level )(),
-      set: v => defaultSetter(component, parentPath, last, level )(v),
-      enumerable: true, 
-      configurable: true,
-    }
+  const { parentPath, last, level } = definedProperty;
+  return {
+    get: () => defaultGetter(component, parentPath, last, level)(),
+    set: v => defaultSetter(component, parentPath, last, level)(v),
+    enumerable: true, 
+    configurable: true,
   }
-;
+};
 
+/**
+ * 
+ * @param {Component} component 
+ * @param {string} name 
+ * @returns {PropertyDescriptor}
+ */
 const createDefaultPrimitiveDesc = (component, name) => {
-    return {
-      get: () => defaultGetterPrimitive(component, name)(),
-      set: v => defaultSetterPrimitive(component, name)(v),
-      enumerable: true, 
-      configurable: true,
-    }
+  return {
+    get: () => defaultGetterPrimitive(component, name)(),
+    set: v => defaultSetterPrimitive(component, name)(v),
+    enumerable: true, 
+    configurable: true,
   }
-;
+};
 
+/**
+ * 
+ * @param {string} name 
+ * @returns {PropertyDescriptor}
+ */
 const createDefaultGlobalPrimitiveDesc = name => {
-    return {
-      get: () => defaultGetterGlobalPrimitive(name)(),
-      set: v => defaultSetterGlobalPrimitive(name)(v),
-      enumerable: true, 
-      configurable: true,
-    }
+  return {
+    get: () => defaultGetterGlobalPrimitive(name)(),
+    set: v => defaultSetterGlobalPrimitive(name)(v),
+    enumerable: true, 
+    configurable: true,
   }
-;
+};
 
+/**
+ * 
+ * @param {any} value 
+ * @returns {PropertyDescriptor}
+ */
 const createPrivateDesc = value => ({
   value,
   writable: true, 
@@ -145,6 +167,9 @@ export default class {
     // プライベートプロパティ __で始まる
     // コンテキストプロパティ $で始まる
     // グローバルプロパティ $$で始まる
+    /**
+     * @type {Map<string,PropertyDescriptor>}
+     */
     const descByProp = new Map;
     const setOfPrivateProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("__")));
     const setOfContextProps = new Set(Object.keys(viewModel).filter(prop => prop[0] === "$" && prop[1] !== "$"));
