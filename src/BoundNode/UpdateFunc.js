@@ -215,7 +215,7 @@ export default {
   "param1" : [UpdateViewModel.param1, UpdateNode.param1],
   "param2" : [UpdateViewModel.param2, UpdateNode.param2],
   "className" : [UpdateViewModel.className, UpdateNode.className],
-  "radio" : [UpdateViewModel.className, UpdateNode.className],
-  "checkbox" : [UpdateViewModel.className, UpdateNode.className],
-  "file" : [UpdateViewModel.className, UpdateNode.className],
+  "radio" : [UpdateViewModel.radio, UpdateNode.radio],
+  "checkbox" : [UpdateViewModel.checkbox, UpdateNode.checkbox],
+  "file" : [UpdateViewModel.file, UpdateNode.file],
 }

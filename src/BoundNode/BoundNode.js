@@ -9,6 +9,7 @@ import Proxy from "../ViewModel/Proxy.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
 import UpdateFunc from "./UpdateFunc.js";
 import CheckPoint from "../CheckPoint/CheckPoint.js";
+import NodeProperty from "./NodeProperty.js";
 
 const setOfInputableTagName = new Set(["INPUT", "SELECT", "TEXTAREA", "OPTION"]);
 const setOfCheckableTypeName = new Set(["radio", "checkbox"]);
@@ -165,15 +166,9 @@ export default class BoundNode {
    */
   propsByViewModelPath = new Map();
   /**
-   * @typedef {(viewModel:{},viewModelProp:string,node:Node,prop:string,paths:string[],filters:FilterData[])=>{}} UpdateNodeFunc
+   * @type {Set<string>}
    */
-  /**
-   * @typedef {(node:Node,prop:string,paths:string[],viewModel:{},viewModelProp:string,filters:FilterData[])=>{}} UpdateViewModelFunc
-   */
-    /**
-   * @type {Map<string,{updateNodeFunc:UpdateNodeFunc,updateViewModelFunc:UpdateViewModelFunc,paths:string[]}>}
-   */
-  pathsByProp = new Map();
+  setOfNodeProps = new Set;
 
   /**
    * @type {ActiveProperty}
@@ -304,7 +299,7 @@ export default class BoundNode {
 
   /**
    * プロパティをバインドする。
-   * viewModelPropByProp、propsByViewModelPath、pathsByPropへバインド情報を登録する。
+   * viewModelPropByProp、propsByViewModelPath、nodePropsへバインド情報を登録する。
    * @param {string} propName 
    * @param {string} viewModelPropName 
    * @param {integer[]} viewModelIndexes 
@@ -314,22 +309,15 @@ export default class BoundNode {
   #bindProp(propName, viewModelPropName, viewModelIndexes, filters, params = {}) {
     const viewModelPropByProp = this.viewModelPropByProp;
     const propsByViewModelPath = this.propsByViewModelPath;
-    const pathsByProp = this.pathsByProp;
     const viewModelProp = ActiveProperty.create(viewModelPropName, viewModelIndexes);
+    const setOfNodeProps = this.setOfNodeProps;
+
     viewModelPropByProp.set(propName, {viewModelProp, filters});
 
     const props = propsByViewModelPath.get(viewModelProp.path);
     props ? props.push(propName) : propsByViewModelPath.set(viewModelProp.path, [propName]);
-    let propInfo = pathsByProp.get(propName);
-    if (propInfo == null) {
-      const paths = propName.split(".");
-      const [ updateViewModelFunc, updateNodeFunc ] = 
-        (paths.length === 2 && paths[0] === "class") ? UpdateFunc.className :
-        (propName === "radio" || propName === "checkbox" || propName === "file") ? UpdateFunc[propName] : 
-        (paths.length === 1 || paths.length === 2) ? UpdateFunc["param" + paths.length] : console.error(`unknown property name ${propName}`);
-      propInfo =  { updateNodeFunc, updateViewModelFunc, paths };
-      pathsByProp.set(propName, propInfo);
-    }
+
+    setOfNodeProps.add(propName);
 
     // 副作用
     // 自ノードがコンポーネントの場合、
@@ -365,8 +353,9 @@ export default class BoundNode {
       const viewModelProxy = this.viewModelProxy;
       const node = this.node;
       const nodeProp = propName;
-      const updateNodeFunc = propInfo.updateNodeFunc;
-      const paths = propInfo.paths;
+      const nodeProperty = NodeProperty.create(nodeProp);
+      const updateNodeFunc = nodeProperty.updateNodeFunc;
+      const paths = nodeProperty.paths;
       Reflect.apply(updateNodeFunc, this, [viewModelProxy, viewModelProp, node, nodeProp, paths, filters]);
     }
   }
@@ -449,9 +438,9 @@ export default class BoundNode {
       const thisComponent = node;
       Thread.current.notify(thisComponent, nodeProp, []);
     } else {
-      const { paths, updateNodeFunc } = this.pathsByProp.get(nodeProp);
-      !updateNodeFunc && utils.raise(`unknown property ${nodeProp}`);
-      return Reflect.apply(updateNodeFunc, this, [viewModel, viewModelProp, node, nodeProp, paths, filters]);
+      const nodeProperty = NodeProperty.create(nodeProp);
+      !nodeProperty && utils.raise(`unknown property ${nodeProp}`);
+      return Reflect.apply(nodeProperty.updateNodeFunc, this, [viewModel, viewModelProp, node, nodeProp, nodeProperty.paths, filters]);
     }
   }
 
@@ -460,15 +449,15 @@ export default class BoundNode {
    * ViewModel更新処理
    * ノードの値をViewModelへ反映する
    * @param {Node} node 
-   * @param {string} prop 
+   * @param {string} nodeProp 
    * @param {Object} viewModel 
    * @param {ActiveProperty} viewModelProp 
    * @param {Array<FilterData>} filters 
    */
-  #updateViewModel(node, prop, viewModel, viewModelProp, filters) {
-    const { paths, updateViewModelFunc } = this.pathsByProp.get(prop);
-    !updateViewModelFunc && utils.raise(`unknown property ${prop}`);
-    return Reflect.apply(updateViewModelFunc, this, [node, prop, paths, viewModel, viewModelProp, filters]);
+  #updateViewModel(node, nodeProp, viewModel, viewModelProp, filters) {
+    const nodeProperty = NodeProperty.create(nodeProp);
+    !nodeProperty && utils.raise(`unknown property ${prop}`);
+    return Reflect.apply(nodeProperty.updateViewModelFunc, this, [node, nodeProp, nodeProperty.paths, viewModel, viewModelProp, filters]);
   }
 
   /**
@@ -485,24 +474,15 @@ export default class BoundNode {
     const viewModelProxy = this.viewModelProxy;
     const viewModelIndexes = this.viewModelIndexes;
     const defaultProperty = this.defaultProperty;
-    const pathsByProp = this.pathsByProp;
+    const setOfNodeProps = this.setOfNodeProps;
     if (node instanceof Text) return;
-/*
-    if (node instanceof Text) {
-      // Textノードの場合
-      // 初期値を反映
-      for(const [prop, { viewModelProp, filters }] of this.viewModelPropByProp.entries()) {
-        this.#updateNode(viewModelProxy, viewModelProp, node, prop, filters);
-      }
-      return;
-    }
-*/
+
     const element = this.element;
     // デフォルトイベント
     // ※DOM側でイベントが発生したら、ViewModel側の更新を自動で行う
     // デフォルトのプロパティがバインドされていなければ、イベントの登録は行わない
     if (!this.viewModelHandlerByEvent.has("input")) {
-      const property = pathsByProp.has("file") ? "file" : pathsByProp.has("radio") ? "radio" : pathsByProp.has("checkbox") ? "checkbox" : defaultProperty;
+      const property = setOfNodeProps.has("file") ? "file" : setOfNodeProps.has("radio") ? "radio" : setOfNodeProps.has("checkbox") ? "checkbox" : defaultProperty;
       if (property !== "textContent") {
         const { viewModelProp, filters } = this.viewModelPropByProp.get(property) ?? {};
         if (viewModelProp != null) {
