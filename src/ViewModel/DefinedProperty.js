@@ -25,6 +25,9 @@ export default class DefinedProperty {
     // parentPathsByPath = { "list.*" => [ list, * ], "list" => [ list ] }
     // setOfParentPath = { "list.*" , "list"  }
     // setOfExpandPath = { "list.*" }
+    // isPrimitive = false
+    // isParentPrimitive = false
+    // privateName = null
     this.name = name;
     this.paths = name.split(".");
     this.last = this.paths.at(-1);
@@ -46,6 +49,9 @@ export default class DefinedProperty {
     });
     this.parentPaths = this.listParentPaths[0] ?? [];
     this.parentPath = this.parentPaths.join(".");
+    this.isPrimitive = this.parentPaths.length === 0;
+    this.isParentPrimitive = this.parentPaths.length === 1;
+    this.privateName = this.isPrimitive ? "__" + name : null;
   }
 
   /**

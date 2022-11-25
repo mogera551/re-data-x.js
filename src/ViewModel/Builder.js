@@ -10,10 +10,17 @@ import CheckPoint from "../CheckPoint/CheckPoint.js";
  * @param {Proxy?} viewModelProxy 
  * @returns {(path:string,last:string)=>(()=>any)}
  */
-const defaultGetter = (component, path, last, level, viewModelProxy = component.viewModelProxy) => () => {
-  const indexes = component.stackIndexes.current ?? [];
-  const lastIndex = (last === "*") ? indexes[level] : last;
-  const result = viewModelProxy[path]?.[lastIndex];
+const defaultGetter = (component, path, last, level, isParentPrimitive) => () => {
+  const viewModelProxy = component.viewModelProxy;
+  const viewModel = component.viewModel;
+  let result;
+  if (isParentPrimitive) {
+    result = viewModelProxy[path];
+  } else {
+    const indexes = component.stackIndexes.current ?? [];
+    const lastIndex = (last === "*") ? indexes[level] : last;
+    result = Reflect.get(viewModel, path, viewModelProxy)?.[lastIndex];
+  }
   return result;
 }
 
@@ -23,68 +30,79 @@ const defaultGetter = (component, path, last, level, viewModelProxy = component.
  * @param {Proxy} viewModelProxy 
  * @returns {(path:string,last:string)=>((value:any)=>true)}
  */
-const defaultSetter = (component, path, last, level, viewModelProxy = component.viewModelProxy) => value => {
-  const indexes = component.stackIndexes.current ?? [];
-  const lastIndex = (last === "*") ? indexes[level] : last;
-  viewModelProxy[path][lastIndex] = value;
+const defaultSetter = (component, path, last, level, isParentPrimitive) => value => {
+  const viewModelProxy = component.viewModelProxy;
+  const viewModel = component.viewModel;
+  if (isParentPrimitive) {
+    viewModelProxy[path] = value;
+  } else {
+    const indexes = component.stackIndexes.current ?? [];
+    const lastIndex = (last === "*") ? indexes[level] : last;
+    Reflect.get(viewModel, path, viewModelProxy)[lastIndex] = value;
+  }
   return true;
 }
 
 /**
  * デフォルトのgetter
  * @param {Component} component 
- * @param {Proxy?} viewModelProxy 
- * @returns {(path:string)=>(()=>any)}
+ * @returns {(name:string)=>(()=>any)}
  */
-const defaultGetterPrimitive = (component, viewModelProxy = component.viewModelProxy) => path => () => {
-  return viewModelProxy?.["__" + path];
+const defaultGetterPrimitive = (component, name) => () => {
+  const viewModelProxy = component.viewModelProxy;
+  const viewModel = component.viewModel;
+  return Reflect.get(viewModel, "__" + name, viewModelProxy);
 }
 
 /**
  * デフォルトのsetter
  * @param {Component} component 
- * @param {Proxy} viewModelProxy 
- * @returns {(path:string)=>((value:any)=>true)}
+ * @returns {(name:string)=>((value:any)=>true)}
  */
-const defaultSetterPrimitive = (component, viewModelProxy = component.viewModelProxy) => path => value => {
-  viewModelProxy["__" + path] = value;
+const defaultSetterPrimitive = (component, name) => value => {
+  const viewModelProxy = component.viewModelProxy;
+  const viewModel = component.viewModel;
+  Reflect.set(viewModel, "__" + name, value, viewModelProxy)
   return true;
 }
 
 /**
  * デフォルトのgetter
- * @param {string} path 
+ * @param {string} name 
  * @returns {any}
  */
-const defaultGetterGlobalPrimitive = path => () => {
-  const propName = path.slice(2); // 先頭$$をスキップ
+const defaultGetterGlobalPrimitive = name => () => {
+  const propName = name.slice(2); // 先頭$$をスキップ
   return globals?.[propName];
 }
 
 /**
  * デフォルトのsetter
- * @param {string} path 
+ * @param {string} name 
  * @returns {(value:any)=>true}
  */
-const defaultSetterGlobalPrimitive = path => value => {
-  const propName = path.slice(2); // 先頭$$をスキップ
+const defaultSetterGlobalPrimitive = name => value => {
+  const propName = name.slice(2); // 先頭$$をスキップ
   globals[propName] = value;
   return true;
 }
 
-const applyGetter = (component, viewModelProxy = component.viewModelProxy) => getter => () => {
+const applyGetter = (component) => getter => () => {
+  const viewModelProxy = component.viewModelProxy;
   return Reflect.apply(getter, viewModelProxy, []);
 }
 
-const applySetter = (component, viewModelProxy = component.viewModelProxy) => setter => value => {
+const applySetter = (component) => setter => value => {
+  const viewModelProxy = component.viewModelProxy;
   return Reflect.apply(setter, viewModelProxy, [value]);
 }
 
 const createDefaultDesc = 
-  (component, path, last, level) => {
+  (component, definedProperty) => {
+    const { path, last, level, isParentPrimitive } = definedProperty;
     return {
-      get: () => defaultGetter(component, path, last, level)(),
-      set: v => defaultSetter(component, path, last, level)(v),
+      get: () => defaultGetter(component, path, last, level, isParentPrimitive)(),
+      set: v => defaultSetter(component, path, last, level, isParentPrimitive)(v),
       enumerable: true, 
       configurable: true,
     }
@@ -92,11 +110,10 @@ const createDefaultDesc =
 ;
 
 const createDefaultPrimitiveDesc = 
-  component => 
-  path => {
+  (component, name) => {
     return {
-      get: () => defaultGetterPrimitive(component)(path)(),
-      set: v => defaultSetterPrimitive(component)(path)(v),
+      get: () => defaultGetterPrimitive(component, name)(),
+      set: v => defaultSetterPrimitive(component, name)(v),
       enumerable: true, 
       configurable: true,
     }
@@ -124,34 +141,35 @@ const createPrivateDesc = value => ({
 export default class {
 
   static build(component, viewModel = component.viewModel) {
+    // プライベートプロパティ __で始まる
+    // コンテキストプロパティ $で始まる
+    // グローバルプロパティ $$で始まる
     const descByProp = new Map;
     const setOfPrivateProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("__")));
     const setOfContextProps = new Set(Object.keys(viewModel).filter(prop => prop[0] === "$" && prop[1] !== "$"));
+    const setOfGlobalProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("$$")));
     const importProps = [];
 
-    const createDesc = (prop, value = null) => {
-      const paths = prop.split(".");
-      if (paths.length > 1) {
-        const last = paths.pop();
-        const path = prop.slice(0, - last.length - 1);
-        descByProp.set(prop, createDefaultDesc(component, path, last, path.match(/\*/g)?.length ?? 0));
+    const createDesc = (name, value = null) => {
+      if (setOfGlobalProps.has(name)) {
+        descByProp.set(name, createDefaultGlobalPrimitiveDesc(name));
       } else {
-        const path = prop;
-        if (path.startsWith("$$")) {
-          descByProp.set(prop, createDefaultGlobalPrimitiveDesc(path));
+        const definedProperty = DefinedProperty.create(name);
+        if (!definedProperty.isPrimitive) {
+          descByProp.set(name, createDefaultDesc(component, definedProperty));
         } else {
-          descByProp.set(prop, createDefaultPrimitiveDesc(component)(path));
-          const privatePath = `__${path}`;
-          if (!setOfPrivateProps.has(privatePath)) {
-            //descByProp.set(privatePath, createPrivateDesc(value));
-            Object.defineProperty(viewModel, privatePath, createPrivateDesc(value));
-            setOfPrivateProps.add(privatePath);
+          descByProp.set(name, createDefaultPrimitiveDesc(component, name));
+          if (!setOfPrivateProps.has(definedProperty.privateName)) {
+            Object.defineProperty(viewModel, definedProperty.privateName, createPrivateDesc(value));
+            setOfPrivateProps.add(definedProperty.privateName);
           }
         }
       }
     };
     
+    // ViewModelオブジェクトのプロパティを取得
     for(const [prop, value] of Object.entries(viewModel)) {
+      // 
       if (setOfPrivateProps.has(prop) || setOfContextProps.has(prop)) continue;
       if (value === Symbol.for("import")) {
         // importなのでdata-bindプロパティの展開処理
@@ -161,6 +179,7 @@ export default class {
       createDesc(prop, value);
     }
 
+    // ViewModelのアクセサのthisをViewModelProxyにする
     for(const [prop, desc] of Object.entries(Object.getOwnPropertyDescriptors(Object.getPrototypeOf(viewModel)))) {
       if (prop === "constructor") continue;
       if (utils.isFunction(desc.value)) continue;
@@ -179,23 +198,19 @@ export default class {
 
     const removeProps = Object.keys(viewModel).filter(prop => !setOfPrivateProps.has(prop) && !setOfContextProps.has(prop));
     removeProps.forEach(prop => delete viewModel[prop]);
-    for(const [prop, desc] of descByProp.entries()) {
-      Object.defineProperty(viewModel, prop, desc);
-    }
+    Array.from(descByProp.entries()).forEach(([prop, desc]) => Object.defineProperty(viewModel, prop, desc));
     const publicProps = Object.keys(viewModel).concat(importProps);
+    const definedProperties = publicProps.map(name => DefinedProperty.create(name));
     // 配列と思われるプロパティの取得
     const arrayProps = publicProps.filter(prop => `${prop}.*` in viewModel);
     // 関係のあるプロパティ
     const setOfRelativePropsByProp = new Map;
-    publicProps
+    definedProperties
       .reduce((map, prop) => {
-        const relateProp = `${prop}.`;
-        map.set(prop, new Set(publicProps.filter(_prop => _prop.startsWith(relateProp))));
+        map.set(prop.name, new Set(definedProperties.filter(_prop => _prop.setOfParentPath.has(prop.name)).map(prop => prop.name)));
         return map;
       }, setOfRelativePropsByProp);
-    publicProps.forEach(prop => DefinedProperty.create(prop));
-    //console.log(arrayProps.join(","));
-    return { importProps, arrayProps, setOfRelativePropsByProp };
+    return { importProps, arrayProps, setOfRelativePropsByProp, definedProperties };
 
   }
 
