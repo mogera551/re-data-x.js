@@ -157,7 +157,7 @@ const createDefaultGlobalPrimitiveDesc = name => {
 const createPrivateDesc = value => ({
   value,
   writable: true, 
-  enumerable: true, 
+  enumerable: false, 
   configurable: true,
 });
 
@@ -226,7 +226,8 @@ export default class {
     removeProps.forEach(prop => delete viewModel[prop]);
     Array.from(descByProp.entries()).forEach(([prop, desc]) => Object.defineProperty(viewModel, prop, desc));
     const publicProps = Object.keys(viewModel).concat(importProps);
-    const definedProperties = publicProps.map(name => DefinedProperty.create(name));
+    const definedProperties = publicProps.map(name => DefinedProperty.create(name))
+      .sort((p1, p2) => p1.level === p2.level ? p1.paths.length - p2.paths.length : p1.level - p2.level);
     // 配列と思われるプロパティの取得
     const arrayProps = publicProps.filter(prop => `${prop}.*` in viewModel);
     // 関係のあるプロパティ

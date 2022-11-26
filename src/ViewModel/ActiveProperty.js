@@ -33,7 +33,7 @@ export default class ActiveProperty {
   /**
    * @type {string}
    */
-  prentPath;
+  parentPath;
 
   /**
    * 
@@ -55,7 +55,21 @@ export default class ActiveProperty {
     this.parentPath = utils.getPath(definedProp.parentPath, indexes);
   }
 
-  static propByPath = new Map();
+  /**
+   * 
+   * @param {ActiveProperty} comp 
+   */
+  compare(comp) {
+    const result = this.definedProp.compare(comp.definedProp);
+    if (result !== 0) return result;
+    for(let i = 0; i < this.indexes.length; i++) {
+      const diff = this.indexes[i] - comp.indexes[i];
+      if (diff !== 0) return diff;
+    }
+    return 0;
+  }
+
+  static cacheActivePropertyByPath = new Map();
   /**
    * 
    * @param {string} name 
@@ -65,13 +79,13 @@ export default class ActiveProperty {
   static create(name, indexes = []) {
     const indexesString = indexes.toString();
     const key = name + "\t" + indexesString;
-    if (this.propByPath.has(key)) {
-      return this.propByPath.get(key);
+    if (this.cacheActivePropertyByPath.has(key)) {
+      return this.cacheActivePropertyByPath.get(key);
     } else {
       const path = utils.getPath(name, indexes);
       const definedProp = DefinedProperty.create(name);
       const activeProperty = new ActiveProperty(definedProp, path, indexes, indexesString, key);
-      this.propByPath.set(key, activeProperty);
+      this.cacheActivePropertyByPath.set(key, activeProperty);
       return activeProperty;
     }
   }

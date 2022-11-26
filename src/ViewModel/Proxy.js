@@ -27,10 +27,11 @@ getMemberFuncOfProp.set("$component", handler => handler.component);
 getMemberFuncOfProp.set("$setOfImportProps", handler => handler.setOfImportProps);
 getMemberFuncOfProp.set("$setOfArrayProps", handler => handler.setOfArrayProps);
 getMemberFuncOfProp.set("$setOfRelativePropsByProp", handler => handler.setOfRelativePropsByProp);
+getMemberFuncOfProp.set("$definedProperties", handler => handler.definedProperties);
 
 const SET_OF_PROXY_MEMBERS = new Set([
   "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", 
-  "$indexes", "$component", "$setOfImportProps", "$setOfArrayProps", "$setOfRelativePropsByProp",
+  "$indexes", "$component", "$setOfImportProps", "$setOfArrayProps", "$setOfRelativePropsByProp", "$definedProperties",
   
 ]);
 
@@ -75,8 +76,8 @@ class Cache extends Map {
    * @returns {Cache}
    */
   set(key, value) {
-    const activeProperties = this.#component.activeProperties;
-    if (activeProperties?.has(key)) {
+    const activeProperties2 = this.#component.activeProperties2;
+    if (activeProperties2?.has(key)) {
       value = value?.[SymIsProxy] ? value[SymRaw] : value;
       super.set(key, value);
       this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
@@ -89,10 +90,10 @@ class Cache extends Map {
    * @param {string} key 
    */
   deleteRelative(key) {
-    const activeProperties = this.#component.activeProperties;
+    const activeProperties2 = this.#component.activeProperties2;
     this.has(key) && this.delete(key);
-    if (activeProperties?.has(key)) {
-      activeProperties.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
+    if (activeProperties2?.has(key)) {
+      activeProperties2.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
     }
   }
 }
@@ -196,6 +197,7 @@ class Handler {
   arrayProps;
   setOfArrayProps;
   setOfRelativePropsByProp;
+  definedProperties;
 
   /**
    * コンストラクタ
@@ -204,13 +206,14 @@ class Handler {
    * @param {string[]} arrayProps
    * @param {Map<string,Set<string>>} setOfRelativePropsByProp
    */
-  constructor(component, importProps, arrayProps, setOfRelativePropsByProp) {
+  constructor(component, importProps, arrayProps, setOfRelativePropsByProp, definedProperties) {
     this.component = component;
     this.#addImportProp(...importProps);
     this.cache = new Cache(component);
     this.arrayProps = arrayProps;
     this.setOfArrayProps = new Set(arrayProps);
     this.setOfRelativePropsByProp = setOfRelativePropsByProp;
+    this.definedProperties = definedProperties;
   }
 
   #addImportProp(...args) {
@@ -414,8 +417,8 @@ class Handler {
         return result;
       }
     } else {
-      if (this.component.activeProperties?.has(prop)) {
-        const activeProperty = this.component.activeProperties.get(prop);
+      if (this.component.activeProperties2?.has(prop)) {
+        const activeProperty = this.component.activeProperties2.get(prop);
         return this.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path, target, receiver);
       }
 
@@ -450,8 +453,8 @@ class Handler {
    set(target, prop, value, receiver) {
     let isSet = false;
     if (!(prop in target)) {
-      if (this.component.activeProperties.has(prop)) {
-        const activeProperty = this.component.activeProperties.get(prop);
+      if (this.component.activeProperties2.has(prop)) {
+        const activeProperty = this.component.activeProperties2.get(prop);
         this.$setValue(activeProperty.name, activeProperty.indexes, activeProperty.path, value, target, receiver);
         return true;
       }
@@ -494,7 +497,7 @@ export default class {
    * @returns {ViewModelProxy}
    */
   static create(component, viewModel = component.viewModel) {
-    const { importProps, arrayProps, setOfRelativePropsByProp} = Builder.build(component);
-    return new ViewModelProxy(viewModel, new Handler(component, importProps, arrayProps, setOfRelativePropsByProp));
+    const { importProps, arrayProps, setOfRelativePropsByProp, definedProperties} = Builder.build(component);
+    return new ViewModelProxy(viewModel, new Handler(component, importProps, arrayProps, setOfRelativePropsByProp, definedProperties));
   }
 }

@@ -6,7 +6,7 @@ import Stack from "./Stack.js";
 import BoundNode from "../BoundNode/BoundNode.js";
 import Thread from "../Thread/Thread.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
-import ActiveProperties from "../ViewModel/ActiveProperties.js";
+import ActiveProperties2 from "../ViewModel/ActiveProperties2.js";
 
 /**
  * Componentのベース、HTMLElementを拡張します。
@@ -83,7 +83,7 @@ export default class BaseComponent extends HTMLElement {
    * @returns {View}
    */
   createView() {
-    return("dialog" in this.dataset) ? new DialogView(this) : new View(this);
+    return ("dialog" in this.dataset) ? new DialogView(this) : new View(this);
   }
 
   /**
@@ -266,14 +266,18 @@ export default class BaseComponent extends HTMLElement {
   /**
    * @type {ActiveProperties}
    */
-  activeProperties;
+  activeProperties2;
 
   /**
    * @type {Map<string,ActiveProperty>}
    */
   updateActiveProperty() {
     //console.time("ActiveProperty.create");
-    this.activeProperties = ActiveProperties.create(this.viewModelProxy);
+    if (this.activeProperties2 == null) {
+      this.activeProperties2 = new ActiveProperties2(this.viewModelProxy.$definedProperties);
+      //console.timeLog("ActiveProperty.create");
+    }
+    this.activeProperties2.build(this.viewModelProxy);
     //console.timeEnd("ActiveProperty.create");
   }
   /**

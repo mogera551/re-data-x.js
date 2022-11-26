@@ -88,8 +88,8 @@ export default class {
                 .flatMap(notification => {
                   const level = notification.prop.match(/\*/g)?.length ?? 0;
                   if (notification.indexes.length < level) {
-                    const activeProperties = component.activeProperties.search(notification.prop, notification.indexes) ?? [];
-                    return activeProperties.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes))
+                    const activeProperties2 = component.activeProperties2.search(notification.prop, notification.indexes) ?? [];
+                    return activeProperties2.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes))
                   } else {
                     return new NotifyData(component, notification.prop, notification.indexes);
                   }
