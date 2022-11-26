@@ -96,8 +96,5 @@ export default class NodeSelector {
     //console.log(comments);
 
     return boundNodes;
-
   }
-
-
 }

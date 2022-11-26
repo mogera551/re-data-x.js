@@ -102,18 +102,19 @@ export default class DefinedProperty {
   /**
    * @type {Map<string,DefinedProperty>}
    */
-  static propByName = new Map();
+  static cacheDefinedPropertyByName = new Map;
+
   /**
    * ViewModelのBuild時、定義されたプロパティを登録
    * @param {string} name プロパティ名
    * @returns 
    */
   static create(name) {
-    if (this.propByName.has(name)) {
-      return this.propByName.get(name);
+    if (this.cacheDefinedPropertyByName.has(name)) {
+      return this.cacheDefinedPropertyByName.get(name);
     } else {
       const prop = new DefinedProperty(name);
-      this.propByName.set(name, prop);
+      this.cacheDefinedPropertyByName.set(name, prop);
       return prop;
     }
   }

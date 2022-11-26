@@ -444,7 +444,6 @@ export default class BoundNode {
     }
   }
 
-
   /**
    * ViewModel更新処理
    * ノードの値をViewModelへ反映する
