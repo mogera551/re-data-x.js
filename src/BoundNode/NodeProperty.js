@@ -5,6 +5,10 @@ export default class NodeProperty {
   paths;
   updateViewModelFunc;
   updateNodeFunc;
+  /**
+   * ノードのプロパティについて、パス要素、ViewModel・ノード更新関数を取得
+   * @param {string} name 
+   */
   constructor(name) {
     this.name = name;
     this.paths = name.split(".");

@@ -30,8 +30,6 @@ export class Component extends BaseComponent {
   constructor() {
     super();
     super.build(WebComponent.getComponentDataByTagName(this.tagName));
-//    this.addEventListener("webComponent.init", e => this.onInit(e));
-//    this.dispatchEvent(new CustomEvent('webComponent.init'));
   }
 }
 

@@ -62,7 +62,6 @@ export default class {
    * @returns {[prop:string,viewModelProp:string,filters:FilterData[]][]}
    */
   static parseBinds = (text, defaultName) => {
-//    return text.split(";").map(this.trim).filter(this.has).map(s => this.parseBind(s, defaultName));
     const key = `${text}\t${defaultName}`;
     if (this.cache.has(key)) {
       return this.cache.get(key);

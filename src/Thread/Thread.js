@@ -125,7 +125,7 @@ export default class Thread {
       try {
         this.updator = await this.sleep();
         try {
-          //console.time("update");
+          //connsole.time("update");
           await this.updator.exec();
           //console.timeEnd("update");
         } finally {

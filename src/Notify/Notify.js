@@ -33,7 +33,7 @@ export default class {
   }
 
   /**
-   * プロパティの内容をDOMへ反映する
+   * 更新通知からプロパティの内容をノードへ反映する
    * @param {NotifyData[]?} queue 
    */
   updateElements(queue = this.queue) {

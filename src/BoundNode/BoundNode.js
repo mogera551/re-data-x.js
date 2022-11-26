@@ -60,7 +60,7 @@ class LoopChild {
    */
   removeNodes() {
     this.nodes.forEach(node => node.parentNode && node.parentNode.removeChild(node));
-    this.nodes.splice(0);
+    //this.nodes.splice(0);
   }
   
   /**
@@ -101,18 +101,21 @@ export default class BoundNode {
    */
   node;
   /**
+   * this.nodeをHTMLElementにキャスト
    * @type {HTMLElement}
    */
   get element() {
     return utils.toElement(this.node);
   }
   /**
+   * this.nodeをHTMLTemplateElementにキャスト
    * @type {HTMLTemplateElement}
    */
   get template() {
     return utils.toTemplate(this.node);
   }
   /**
+   * this.nodeをComponentにキャスト
    * @type {Component}
    */
   get component() {
@@ -206,29 +209,10 @@ export default class BoundNode {
   }
 
   /**
-   * 
-   * @param {Component} component
-   * @param {Node} loopNode 
-   * @param {ActiveProperty} activeProperty 
-   * @param {HTMLTemplateElement} template 
-   * @param {integer} key 
-   * @param {any} value 
-   */
-  #createLoopChild(component, loopNode, activeProperty, template, key, value) {
-    const child = new LoopChild;
-    const newIndexes = activeProperty.definedProp.level === 0 ? [key] : activeProperty.indexes.concat(key);
-    child.root = document.importNode(template.content, true); // See http://var.blog.jp/archives/76177033.html
-    child.boundNodes = NodeSelector.select(component, child.root, template, loopNode, newIndexes);
-    child.nodes = Array.from(child.root.childNodes);
-    child.key = key;
-    child.value = value;
-    return child;
-  }
-  
-  /**
    * ループの展開
+   * @param {Map<any,LoopChild[]>} loopChildsByValue 前の状態
    */
-  #expandLoop() {
+  #expandLoop(loopChildsByValue = new Map()) {
     //console.time("BoundNode.expandLoop");
     const template = this.template;
     const loopNode = this;
@@ -239,43 +223,58 @@ export default class BoundNode {
     
     this.loopValue = ActiveProperty.getValue(viewModelProxy, loopViewModelProp);
     loopChildren.push(...Object.entries(this.loopValue).map(([key, value]) => {
-      const child = new LoopChild;
+      let child;
       const newIndexes = loopViewModelProp.definedProp.level === 0 ? [key] : loopViewModelProp.indexes.concat(key);
-      child.root = document.importNode(template.content, true); // See http://var.blog.jp/archives/76177033.html
-      child.boundNodes = NodeSelector.select(component, child.root, template, loopNode, newIndexes);
-      child.nodes = Array.from(child.root.childNodes);
-      child.key = key;
-      child.value = value;
+      if (loopChildsByValue.has(value)) {
+        const childs = loopChildsByValue.get(value);
+        child = childs.shift();
+        child.root = document.createDocumentFragment();
+        child.nodes.forEach(node => child.root.appendChild(node));
+        childs.length === 0 && loopChildsByValue.delete(value);
+        child.boundNodes.forEach(boundNode => boundNode.change(newIndexes));
+        child.key = key;
+      } else {
+        child = new LoopChild;
+        child.root = document.importNode(template.content, true); // See http://var.blog.jp/archives/76177033.html
+        child.boundNodes = NodeSelector.select(component, child.root, template, loopNode, newIndexes);
+        child.nodes = Array.from(child.root.childNodes);
+        child.key = key;
+        child.value = value;
+        child.init();
+      }
       return child;
     }));
-//      this.#createLoopChild(component, loopNode, loopViewModelProp, template, key, value)));
-    //console.timeLog("BoundNode.expandLoop");
 
     const fragment = document.createDocumentFragment();
     loopChildren.forEach(loopChild => fragment.appendChild(loopChild.root));
     template.after(fragment);
-    //console.timeEnd("BoundNode.expandLoop");
-
   }
 
   /**
    * ループの再展開
    */
   #reexpandLoop() {
-    //console.time("BoundNode.reexpandLoop");
+    const loopValue = ActiveProperty.getValue(this.viewModelProxy, this.loopViewModelProp);
+    // 前回の値を取得
+    /**
+     * @type {Map<any,LoopChild[]>}
+     */
+    const loopChildsByValue = new Map();
+    if (loopValue.length > 0) {
+      this.loopChildren.forEach(loopChild => 
+        loopChildsByValue.has(loopChild.value) ? loopChildsByValue.get(loopChild.value).push(loopChild) : loopChildsByValue.set(loopChild.value, [loopChild])
+      );
+    }
+
     this.loopChildren.forEach(loopChild => loopChild.removeNodes());
-    //console.timeLog("BoundNode.reexpandLoop");
     this.loopChildren = [];
-    this.#expandLoop();
-    //console.timeLog("BoundNode.reexpandLoop");
-    this.loopChildren.forEach(loopChild => loopChild.init());
-    //console.timeEnd("BoundNode.reexpandLoop");
+    this.#expandLoop(loopChildsByValue);
   }
 
   /**
-   * 
+   * 親要素をクローンして入れ替えて、子要素を再展開して、最後に元に戻す
    * @param {Element} element 
-   * @param {()=>{})} callback 
+   * @param {()=>{}} callback 
    */
   #offlineRender(element, callback) {
     const parentElement = element.parentElement;
@@ -307,17 +306,14 @@ export default class BoundNode {
    * @param {Object<string,any>?} params
    */
   #bindProp(propName, viewModelPropName, viewModelIndexes, filters, params = {}) {
-    const viewModelPropByProp = this.viewModelPropByProp;
-    const propsByViewModelPath = this.propsByViewModelPath;
     const viewModelProp = ActiveProperty.create(viewModelPropName, viewModelIndexes);
-    const setOfNodeProps = this.setOfNodeProps;
 
-    viewModelPropByProp.set(propName, {viewModelProp, filters});
+    this.viewModelPropByProp.set(propName, {viewModelProp, filters});
 
-    const props = propsByViewModelPath.get(viewModelProp.path);
-    props ? props.push(propName) : propsByViewModelPath.set(viewModelProp.path, [propName]);
+    const [propByPath, path] = [this.propsByViewModelPath, viewModelProp.path];
+    propByPath.has(path) ? propByPath.get(path).push(propName) : propByPath.set(path, [propName]);
 
-    setOfNodeProps.add(propName);
+    this.setOfNodeProps.add(propName);
 
     // 副作用
     // 自ノードがコンポーネントの場合、
@@ -345,18 +341,12 @@ export default class BoundNode {
           set: value => Reflect.set(globalData, viewModelProp.name, value),
         });
       }
-      const nodeProp = propName;
-      Thread.current.notify(component, nodeProp, []);
+      Thread.current.notify(component, propName, []);
 
     } else {
       // 初期値を設定
-      const viewModelProxy = this.viewModelProxy;
-      const node = this.node;
-      const nodeProp = propName;
-      const nodeProperty = NodeProperty.create(nodeProp);
-      const updateNodeFunc = nodeProperty.updateNodeFunc;
-      const paths = nodeProperty.paths;
-      Reflect.apply(updateNodeFunc, this, [viewModelProxy, viewModelProp, node, nodeProp, paths, filters]);
+      const {updateNodeFunc, paths} = NodeProperty.create(propName);
+      Reflect.apply(updateNodeFunc, this, [this.viewModelProxy, viewModelProp, this.node, propName, paths, filters]);
     }
   }
 
@@ -365,13 +355,11 @@ export default class BoundNode {
    * @param {string} bindText 
    */
   #parseProp(bindText) {
-    const viewModelIndexes = this.viewModelIndexes;
-    const viewModelHandlerByEvent = this.viewModelHandlerByEvent;
     ParseFunc.parseBinds(bindText ?? "", this.defaultProperty).forEach(([propName, viewModelPropName, filters]) => {
       if (propName[0] === "o" && propName[1] === "n") {
-        viewModelHandlerByEvent.set(propName, viewModelPropName);
+        this.viewModelHandlerByEvent.set(propName, viewModelPropName);
       } else {
-        this.#bindProp(propName, viewModelPropName, viewModelIndexes, filters);
+        this.#bindProp(propName, viewModelPropName, this.viewModelIndexes, filters);
       }
     });
   }
@@ -380,9 +368,8 @@ export default class BoundNode {
    * @param {string} bindText 
    */
   #parseComment(bindText) {
-    const viewModelIndexes = this.viewModelIndexes;
     ParseFunc.parseBinds(bindText ?? "", this.defaultProperty).forEach(([propName, viewModelPropName, filters]) => {
-      this.#bindProp(propName, viewModelPropName, viewModelIndexes, filters);
+      this.#bindProp(propName, viewModelPropName, this.viewModelIndexes, filters);
     });
   }
 
@@ -395,11 +382,13 @@ export default class BoundNode {
    */
   parse(viewModelIndexes, params = {}) {
     this.viewModelIndexes = viewModelIndexes;
-    const node = this.node;
-    if (node instanceof Comment) {
-      const bindText = node.textContent.slice(2);
+    if (this.node instanceof Comment) {
+      // コメントノードをテキストノードに入れ替える
+      // this.nodeを入れ替えるので注意
+      const commentNode = this.node;
+      const bindText = commentNode.textContent.slice(2);
       this.node = document.createTextNode("");
-      node.parentNode.replaceChild(this.node, node);
+      commentNode.parentNode.replaceChild(this.node, commentNode);
       this.#parseComment(bindText);
     } else {
       const element = this.element;
@@ -414,8 +403,8 @@ export default class BoundNode {
       else {
         if ("dialog" in element.dataset) {
           for(const propName of Object.keys(params)) {
-            const viewModelPropName = propName;
-            this.#bindProp(propName, viewModelPropName, viewModelIndexes, [], params);
+            // 同じ名前でバインド
+            this.#bindProp(propName, propName, this.viewModelIndexes, [], params);
           }
         } else if ("bind" in element.dataset) {
           this.#parseProp(element.dataset["bind"]);
@@ -435,6 +424,7 @@ export default class BoundNode {
    */
   #updateNode(viewModel, viewModelProp, node, nodeProp, filters) {
     if (node instanceof Component) {
+      // コンポーネントの場合、更新通知を送る
       const thisComponent = node;
       Thread.current.notify(thisComponent, nodeProp, []);
     } else {
@@ -468,27 +458,20 @@ export default class BoundNode {
    * ループ展開した子要素に対して初期化処理
    */
   init() {
-    const component = this.parentComponent;
-    const node = this.node;
-    const viewModelProxy = this.viewModelProxy;
-    const viewModelIndexes = this.viewModelIndexes;
-    const defaultProperty = this.defaultProperty;
-    const setOfNodeProps = this.setOfNodeProps;
-    if (node instanceof Text) return;
+    if (this.node instanceof Text) return;
 
-    const element = this.element;
     // デフォルトイベント
     // ※DOM側でイベントが発生したら、ViewModel側の更新を自動で行う
     // デフォルトのプロパティがバインドされていなければ、イベントの登録は行わない
     if (!this.viewModelHandlerByEvent.has("input")) {
-      const property = setOfNodeProps.has("file") ? "file" : setOfNodeProps.has("radio") ? "radio" : setOfNodeProps.has("checkbox") ? "checkbox" : defaultProperty;
+      const property = this.setOfNodeProps.has("file") ? "file" : this.setOfNodeProps.has("radio") ? "radio" : this.setOfNodeProps.has("checkbox") ? "checkbox" : this.defaultProperty;
       if (property !== "textContent") {
         const { viewModelProp, filters } = this.viewModelPropByProp.get(property) ?? {};
         if (viewModelProp != null) {
-          element.addEventListener("input", event => {
+          this.element.addEventListener("input", event => {
             event.stopPropagation();
             Thread.current.asyncProc(() => {
-              return this.#updateViewModel(node, property, viewModelProxy, viewModelProp, filters);
+              return this.#updateViewModel(this.node, property, this.viewModelProxy, viewModelProp, filters);
             }, this, []);
           });
         }
@@ -497,21 +480,15 @@ export default class BoundNode {
     // イベントハンドラを設定
     for(const [eventOnName, viewModelHandler] of this.viewModelHandlerByEvent.entries()) {
       const eventName = eventOnName.slice(2); // "onclick" => "click"
-      element.addEventListener(eventName, event => {
+      this.element.addEventListener(eventName, event => {
         event.stopPropagation();
         Thread.current.asyncProc(() => {
-          return component.stackIndexes.push(viewModelIndexes, () => {
-            return Reflect.apply(viewModelProxy[viewModelHandler], viewModelProxy, [ event, ...viewModelIndexes ]);
+          return this.parentComponent.stackIndexes.push(this.viewModelIndexes, () => {
+            return Reflect.apply(this.viewModelProxy[viewModelHandler], this.viewModelProxy, [ event, ...this.viewModelIndexes ]);
           });
         }, this, []);
       });
     }
-/*
-    // 初期値を反映
-    for(const [prop, { viewModelProp, filters }] of this.viewModelPropByProp.entries()) {
-      this.#updateNode(viewModelProxy, viewModelProp, node, prop, filters);
-    }
-*/
     // ループで展開した子要素を初期化する
     this.loopChildren.forEach(loopChild => loopChild.init());
   }
@@ -522,31 +499,60 @@ export default class BoundNode {
    * @param {Set<NotifyData>} setOfGlobalNotification 
    */
   update(setOfNotification, setOfGlobalNotification) {
-    //console.log(`update ${this.node.tagName}`);
-    //console.time("BoundNode.update");
     if (this.loopViewModelProp != null) {
       if (setOfNotification.has(this.loopViewModelProp.path)) {
-        const element = utils.toElement(this.node);
-        this.#offlineRender(element, () => {
+        this.#offlineRender(this.element, () => {
           this.#reexpandLoop();
         });
-
       } else {
         this.loopChildren.forEach(loopChild => loopChild.update(setOfNotification, setOfGlobalNotification));
       }
     } else {
-      const node = this.node;
-      const viewModelProxy = this.viewModelProxy;
       for(const [viewModelPath, props] of this.propsByViewModelPath.entries()) {
         if (setOfNotification.has(viewModelPath) || setOfGlobalNotification.has(viewModelPath)) {
           props.forEach(prop => {
             const { viewModelProp, filters } = this.viewModelPropByProp.get(prop);
-            this.#updateNode(viewModelProxy, viewModelProp, node, prop, filters);
+            this.#updateNode(this.viewModelProxy, viewModelProp, this.node, prop, filters);
           });
         }
       }
     }
-    //console.timeEnd("BoundNode.update");
+  }
+
+  /**
+   * インデックス配列を変更する
+   * @param {integer[]} viewModelIndexes 
+   */
+  changeViewModelIndexes(viewModelIndexes) {
+    if (this.viewModelIndexes.toString() === viewModelIndexes.toString()) return;
+    this.viewModelIndexes = viewModelIndexes;
+    Array.from(this.viewModelPropByProp.values()).forEach((info) => {
+      const lastViewModelProperty = info.viewModelProp;
+      info.viewModelProp = ActiveProperty.create(info.viewModelProp.name, viewModelIndexes);
+      const props = this.propsByViewModelPath.get(lastViewModelProperty.path);
+      this.propsByViewModelPath.delete(lastViewModelProperty.path);
+      this.propsByViewModelPath.set(info.viewModelProp.path, props);
+    });
+  }
+
+  /**
+   * 前回の値を元に更新する
+   * @param {integer[]} viewModelIndexes 
+   */
+  change(viewModelIndexes) {
+    this.changeViewModelIndexes(viewModelIndexes);
+    if (this.loopViewModelProp != null) {
+      this.#offlineRender(this.element, () => {
+        this.#reexpandLoop();
+      });
+    } else {
+      for(const [viewModelPath, props] of this.propsByViewModelPath.entries()) {
+        props.forEach(prop => {
+          const { viewModelProp, filters } = this.viewModelPropByProp.get(prop);
+          this.#updateNode(this.viewModelProxy, viewModelProp, this.node, prop, filters);
+        });
+      }
+    }
   }
 
   /**
