@@ -123,9 +123,14 @@ export default class BoundNode {
     Array.from(this.viewModelPropInfoByNodeProperty.values()).forEach((info) => {
       const lastViewModelProperty = info.viewModelProperty;
       info.viewModelProperty = ActiveProperty.create(info.viewModelProperty.name, viewModelIndexes);
-      const props = this.nodePropertiesByViewModelPath.get(lastViewModelProperty.path);
-      this.nodePropertiesByViewModelPath.delete(lastViewModelProperty.path);
-      this.nodePropertiesByViewModelPath.set(info.viewModelProperty.path, props);
+
+      const props = this.nodePropertiesByViewModelPath.get(lastViewModelProperty.path) ?? null;
+      if (props !== null) {
+        // 注意：this.viewModelPropInfoByNodeProperty.values()が同じものを返す場合があるので
+        //       その場合、propsがnullの場合がある
+        this.nodePropertiesByViewModelPath.delete(lastViewModelProperty.path);
+        this.nodePropertiesByViewModelPath.set(info.viewModelProperty.path, props);
+      }
     });
   }
   
@@ -136,6 +141,7 @@ export default class BoundNode {
   reuseLastValue(viewModelIndexes) {
     this.changeViewModelIndexes(viewModelIndexes);
     for(const [viewModelPath, nodeProperties] of this.nodePropertiesByViewModelPath.entries()) {
+      nodeProperties == null && console.log(this, this.nodePropertiesByViewModelPath);
       nodeProperties.forEach(nodeProperty => {
         const { viewModelProperty, filters } = this.viewModelPropInfoByNodeProperty.get(nodeProperty);
         this.assignNodeValue(nodeProperty, viewModelProperty, filters);
