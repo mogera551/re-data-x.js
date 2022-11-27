@@ -18,7 +18,7 @@ const defaultGetter = (component, parentName, last, level) => () => {
   const lastIndex = (last === "*") ? component.stackIndexes.current[level - 1] : last;
   let result;
   if (level === 0) {
-    result = viewModelProxy[parentName][lastIndex];
+    result = viewModelProxy[parentName]?.[lastIndex];
   } else {
     result = Reflect.get(viewModel, parentName, viewModelProxy)?.[lastIndex];
   }
