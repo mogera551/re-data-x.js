@@ -3,10 +3,11 @@ import View from "../View/View.js";
 import DialogView from "../View/DialogView.js";
 import Binder from "../BoundNode/Binder.js";
 import Stack from "./Stack.js";
-import BoundNode from "../BoundNode/BoundNode.js";
 import Thread from "../Thread/Thread.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
 import ActiveProperties2 from "../ViewModel/ActiveProperties2.js";
+import BoundComponent from "../BoundNode/BoundComponent.js";
+import BoundNode from "../BoundNode/BoundNode.js";
 
 /**
  * Componentのベース、HTMLElementを拡張します。
@@ -203,11 +204,10 @@ export default class BaseComponent extends HTMLElement {
    */
   async dialogComponentInit() {
     Thread.current.asyncProc(async () => {
-      const boundNode = BoundNode.create(this.componentForDialog, this);
-      boundNode.parse([], this.paramsForDialog);
+      const boundNode = new BoundComponent(this, this.componentForDialog);
+      boundNode.bind(this.paramsForDialog);
       await this.viewModelProxy.$init();
       this.updateActiveProperty();
-      boundNode.init();
       this.view.render();
     }, this, []);
   }
@@ -218,11 +218,9 @@ export default class BaseComponent extends HTMLElement {
    */
   async topComponentInit() {
     Thread.current.asyncProc(async () => {
-      const boundNode = BoundNode.create(null, this);
-      boundNode.parse([]);
+      const boundNode = new BoundNode(null, this, []);
       await this.viewModelProxy.$init();
       this.updateActiveProperty();
-      boundNode.init();
       Binder.rootBinder.add(boundNode);
       this.view.render();
     }, this, []);

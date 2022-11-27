@@ -1,5 +1,6 @@
-import BoundNode from "./BoundNode.js";
 import { Component } from "../Component/WebComponent.js";
+import BoundNode from "./BoundNode.js";
+import Factory from "./Factory.js";
 const SELECTOR = "[data-bind]";
 
 /**
@@ -32,21 +33,14 @@ export default class NodeSelector {
    * @param {Component} parentComponent 
    * @param {HTMLElement} documentRoot パースを開始する要素 
    * @param {HTMLTemplateElement} template テンプレート
-   * @param {BoundNode} loopNode 
    * @param {integer[]} indexes ループインデックス
    * @returns {BoundNode[]} BoundNodeの配列を返す
    */
-  static select(parentComponent, documentRoot, template, loopNode = null, indexes = []) {
-    //console.time("NodeSelector.select");
+  static select(parentComponent, documentRoot, template, indexes = []) {
     /**
      * @type {BoundNode[]}
      */
     const boundNodes = [];
-    const createBoundNode = node => {
-      const boundNode = BoundNode.create(parentComponent, node, loopNode);
-      boundNode.parse(indexes);
-      return boundNode;
-    };
 
     if (this.listOfRouteIndexesByTemplate.has(template)) {
       // キャッシュがある場合
@@ -55,7 +49,7 @@ export default class NodeSelector {
       const nodes = listOfRouteIndexes.map(routeIndexes => routeIndexes.reduce((node, routeIndex) => node.childNodes[routeIndex], documentRoot));
 
       // BoundNodeを作成する
-      boundNodes.push(...nodes.map(node => createBoundNode(node)));
+      boundNodes.push(...nodes.map(node => Factory.create(parentComponent, node, indexes)));
     } else {
       /**
        * @type {Node[]}
@@ -89,12 +83,9 @@ export default class NodeSelector {
       nodes.push(...commentNodes);
   
       // BoundNodeを作成する
-      boundNodes.push(...nodes.map(node => createBoundNode(node)));
+      boundNodes.push(...nodes.map(node => Factory.create(parentComponent, node, indexes)));
     }
-    //console.timeEnd("NodeSelector.select");
-
-    //console.log(comments);
-
+    boundNodes.forEach(node => node.bind());
     return boundNodes;
   }
 }

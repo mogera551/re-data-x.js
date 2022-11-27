@@ -1,10 +1,16 @@
 import NodeSelector from "./NodeSelector.js";
-import BoundNode from "./BoundNode.js";
 import { Component } from "../Component/WebComponent.js";
+import BoundNode from "./BoundNode.js";
+import BoundTemplate from "./BoundTemplate.js";
+import utils from "../utils.js";
 
-const initializer = boundNode => boundNode.init();
-const updator = (setOfNotification, setOfGlobalNotification) => boundNode => boundNode.update(setOfNotification, setOfGlobalNotification);
+//const initializer = boundNode => boundNode.init();
+const updator = (notifications, globalNotifications) => boundNode => boundNode.updateForNotify(notifications, globalNotifications);
 
+/**
+ * @type {(boundNode:BoundNode)=>BoundTemplate}
+ */
+const toBoundTemplate = boundNode => (boundNode instanceof BoundTemplate) ? boundNode : utils.raise(`${boundNode} is not BoundTemplate`);
 /**
  * コンポーネントがバインドしているノードを管理する。
  * バインドノードがTEMPLATEで、子ノードを展開する場合、TEMPLATE側で子ノードの管理を行う。
@@ -47,24 +53,24 @@ export default class Binder {
   /**
    * バインドノードのリストに対して、初期化を行う
    */
-  init() {
-    this.boundNodes.forEach(initializer);
-  }
+//  init() {
+//    this.boundNodes.forEach(initializer);
+//  }
 
   /**
    * バインドノードのリストに対して、更新処理を行う
    * コンポーネントのViewModelの更新した内容をノードへ反映する
-   * @param {Set<NotifyData>} setOfNotification 
-   * @param {Set<NotifyData>} setOfGlobalNotification 
+   * @param {Set<NotifyData>} notifications
+   * @param {Set<NotifyData>} globalNotifications
    */
-  update(setOfNotification, setOfGlobalNotification) {
-    this.boundNodes.forEach(updator(setOfNotification, setOfGlobalNotification));
+  updateForNotify(notifications, globalNotifications) {
+    this.boundNodes.forEach(updator(notifications, globalNotifications));
   }
 
   /**
    * バインドノードのリストの巡回を行う
    * @async
-   * @param {async ()=>{}}
+   * @param {(boundNode:BoundNode)=>{}} callback
    */
   async walk(callback) {
     /**
@@ -76,8 +82,11 @@ export default class Binder {
     const walk_ = async boundNodes => {
       for(const boundNode of boundNodes) {
         await callback(boundNode);
-        for(const loopChild of boundNode.loopChildren) {
-          await walk_(loopChild.boundNodes);
+        if (boundNode instanceof BoundTemplate) {
+          const boundTemplate = toBoundTemplate(boundNode);
+          for(const loopChild of boundTemplate.loopChildren) {
+            await walk_(loopChild.boundNodes);
+          }
         }
       }
     }
@@ -92,9 +101,9 @@ export default class Binder {
    */
   async findNode(setOfNames, callback) {
     await this.walk(async boundNode => {
-      const keys = Array.from(boundNode.propsByViewModelPath.keys());
-      for(const key of keys.filter(key => setOfNames.has(key))) {
-        await callback(key, boundNode.node);
+      const viewModelPaths = Array.from(boundNode.nodePropertiesByViewModelPath.keys());
+      for(const viewModelPath of viewModelPaths.filter(path => setOfNames.has(path))) {
+        await callback(viewModelPath, boundNode.node);
       }
     });
   }

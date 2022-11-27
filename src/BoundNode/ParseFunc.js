@@ -45,7 +45,7 @@ export default class {
   }
   /**
    * 式のパース
-   * "textContent:value|eq,100|falsey" ---> ["textContent", "value", FilterData[]]
+   * "textContent:value|eq,100|falsey" ---> ["textContent", "value", FilterData[eq, falsey]]
    * @param {string} expr 
    * @param {string} defaultName 
    * @returns {[prop:string,viewModelProp:string,filters:FilterData[]]}

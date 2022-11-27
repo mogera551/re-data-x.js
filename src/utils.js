@@ -45,21 +45,21 @@ export default class {
    * @param {Node} node 
    * @returns {HTMLElement}
    */
-  static toElement = node => (node instanceof HTMLElement) ? node : utils.raise(`node ${node} is not HTMLElement`);
+  static toElement = node => (node instanceof HTMLElement) ? node : this.raise(`node ${node} is not HTMLElement`);
   
   /**
    * 
    * @param {Node} node 
    * @returns {HTMLTemplateElement}
    */
-  static toTemplate = node => (node instanceof HTMLTemplateElement) ? node : utils.raise(`node ${node} is not HTMLTemplateElement`);
+  static toTemplate = node => (node instanceof HTMLTemplateElement) ? node : this.raise(`node ${node} is not HTMLTemplateElement`);
   
   /**
    * 
    * @param {Node} node 
    * @returns {HTMLInputElement}
    */
-  static toInput = node => (node instanceof HTMLInputElement) ? node : utils.raise(`node ${node} is not HTMLInputElement`);
+  static toInput = node => (node instanceof HTMLInputElement) ? node : this.raise(`node ${node} is not HTMLInputElement`);
   
   static toKebabCase = text => text.replaceAll(/([A-Z])/g, (match,char,index) => (index > 0 ? "-" : "") + char.toLowerCase());
 }
