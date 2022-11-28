@@ -10,7 +10,7 @@
 * おじさんに優しい
 
 ### インストール
-* 単一ファイル
+* scriptタグにCDNのファイルを指定
 
 ```html
 <html>
@@ -18,16 +18,3 @@
 
 </html>
 ```
-
-* モジュール
-
-```html
-<html>
-  
-<script type="module">
-import redatax from "https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/src/framework.js";
-</script>
-</html>
-```
-
-
