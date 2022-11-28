@@ -10,7 +10,7 @@
 * おじさんに優しい
 
 ### インストール
-* CDNの場合
+* 単一ファイル
 
 ```html
 <html>
@@ -19,15 +19,13 @@
 </html>
 ```
 
-* ダウンロードの場合（モジュール形式）
-[ソース](https://github.com/mogera551/re-data-x.js/releases)をダウンロードして、展開する。
-srcフォルダをコピーし、src/framework.jsをimportする。
+* モジュール
 
 ```html
 <html>
   
 <script type="module">
-import redatax from "path/to/src/framework.js";
+import redatax from "https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/src/framework.js";
 </script>
 </html>
 ```
