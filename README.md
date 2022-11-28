@@ -19,4 +19,16 @@
 </html>
 ```
 
-* ダウンロードの場合
+* ダウンロードの場合（モジュール形式）
+[ソース](https://github.com/mogera551/re-data-x.js/releases)をダウンロードして、展開する。
+srcフォルダをコピーし、src/framework.jsをimportする。
+
+```html
+<html>
+  
+<script type="module">
+import redatax from "path/to/src/framework.js";
+</html>
+```
+
+
