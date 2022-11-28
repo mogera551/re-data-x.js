@@ -28,6 +28,7 @@ srcフォルダをコピーし、src/framework.jsをimportする。
   
 <script type="module">
 import redatax from "path/to/src/framework.js";
+</script>
 </html>
 ```
 
