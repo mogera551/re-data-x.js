@@ -9,6 +9,7 @@ import BoundTemplate from "./BoundTemplate.js";
 export default class Factory {
   /**
    * 
+   * @param {Component} parentComponent
    * @param {Node} node 
    * @param {integer[]} indexes 
    * @returns {BoundNode[]}

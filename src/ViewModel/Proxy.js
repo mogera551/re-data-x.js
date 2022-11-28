@@ -76,8 +76,8 @@ class Cache extends Map {
    * @returns {Cache}
    */
   set(key, value) {
-    const activeProperties2 = this.#component.activeProperties2;
-    if (activeProperties2?.has(key)) {
+    const activeProperties = this.#component.activeProperties;
+    if (activeProperties?.has(key)) {
       value = value?.[SymIsProxy] ? value[SymRaw] : value;
       super.set(key, value);
       this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
@@ -90,10 +90,10 @@ class Cache extends Map {
    * @param {string} key 
    */
   deleteRelative(key) {
-    const activeProperties2 = this.#component.activeProperties2;
+    const activeProperties = this.#component.activeProperties;
     this.has(key) && this.delete(key);
-    if (activeProperties2?.has(key)) {
-      activeProperties2.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
+    if (activeProperties?.has(key)) {
+      activeProperties.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
     }
   }
 }
@@ -228,25 +228,22 @@ class Handler {
 
   /**
    * プロパティ、インデックス配列を指定してプロパティ値を取得
-   * @param {string} prop プロパティ（ex. list.*）
-   * @param {integer[]} indexes インデックス配列（ex. [3]） 
-   * @param {string} path パス（ex. list.3）
+   * @param {ActiveProperty} property
    * @param {Object} target ViewModel
    * @param {Proxy} receiver ViewModelProxy
    * @returns 
    */
-  $getValue(prop, indexes, path, target, receiver) {
-    path = path ?? utils.getPath(prop, indexes);
+  $getValue(property, target, receiver) {
     const cache = this.cache;
     const component = this.component;
     let result;
-    if (cache.has(path)) {
-      result = wrapArrayProxy(component, prop, cache.get(path));
+    if (cache.has(property.path)) {
+      result = wrapArrayProxy(component, property.name, cache.get(property.path));
     } else {
-      result = component.stackIndexes.push(indexes, function () { 
-        const value = Reflect.get(target, prop, receiver);
-        cache.set(path, value);
-        const result = wrapArrayProxy(component, prop, value);
+      result = component.stackIndexes.push(property.indexes, function () { 
+        const value = Reflect.get(target, property.name, receiver);
+        cache.set(property.path, value);
+        const result = wrapArrayProxy(component, property.name, value);
         return result;
       });
     }
@@ -256,23 +253,20 @@ class Handler {
   /**
    * プロパティ、インデックス配列を指定してプロパティに値を設定
    * 設定後、更新通知を投げる
-   * @param {string} prop プロパティ（ex. list.*）
-   * @param {integer[]} indexes インデックス配列（ex. [3]） 
-   * @param {string} path パス（ex. list.3）
+   * @param {ActiveProperty} property
    * @param {Any} value 
    * @param {Object} target ViewModel
    * @param {Proxy} receiver ViewModelProxy
    */
-  $setValue(prop, indexes, path, value, target, receiver) {
-    path = path ?? utils.getPath(prop, indexes);
+  $setValue(property, value, target, receiver) {
     const cache = this.cache;
     const component = this.component;
     const notify = this.$notify;
     const handler = this;
-    this.component.stackIndexes.push(indexes, function () {
-      Reflect.set(target, prop, value, receiver);
-      cache.deleteRelative(path);
-      Reflect.apply(notify, handler, [prop, indexes ?? []]);
+    component.stackIndexes.push(property.indexes, function () {
+      Reflect.set(target, property.name, value, receiver);
+      cache.deleteRelative(property.path);
+      Reflect.apply(notify, handler, [property.name, property.indexes ?? []]);
       return true;
     });
   }
@@ -402,26 +396,14 @@ class Handler {
    * @returns 
    */
   get(target, prop, receiver) {
+    if (this.component.activeProperties?.has(prop)) {
+      const activeProperty = this.component.activeProperties.get(prop);
+      return this.$getValue(activeProperty, target, receiver);
+    }
     if (prop in target) {
-      if (prop.includes("*")) {
-        const value = Reflect.get(target, prop, receiver);
-        const result = wrapArrayProxy(this.component, prop, value);
-        return result;
-      } else {
-        if (this.cache.has(prop)) {
-          return wrapArrayProxy(this.component, prop, this.cache.get(prop));
-        }
-        const value = Reflect.get(target, prop, receiver);
-        this.cache.set(prop, value);
-        const result = wrapArrayProxy(this.component, prop, value);
-        return result;
-      }
-    } else {
-      if (this.component.activeProperties2?.has(prop)) {
-        const activeProperty = this.component.activeProperties2.get(prop);
-        return this.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path, target, receiver);
-      }
-
+      const value = Reflect.get(target, prop, receiver);
+      const result = wrapArrayProxy(this.component, prop, value);
+      return result;
     }
 
     if (prop[0] === "$") {
@@ -450,20 +432,14 @@ class Handler {
    * @param {Proxy} receiver VirewModelProxy
    * @returns 
    */
-   set(target, prop, value, receiver) {
-    let isSet = false;
-    if (!(prop in target)) {
-      if (this.component.activeProperties2.has(prop)) {
-        const activeProperty = this.component.activeProperties2.get(prop);
-        this.$setValue(activeProperty.name, activeProperty.indexes, activeProperty.path, value, target, receiver);
-        return true;
-      }
+  set(target, prop, value, receiver) {
+    if (this.component.activeProperties.has(prop)) {
+      const activeProperty = this.component.activeProperties.get(prop);
+      this.$setValue(activeProperty, value, target, receiver);
+      return true;
     }
 
     Reflect.set(target, prop, value, receiver);
-    this.cache.deleteRelative(prop);
-    const indexes = this.component.stackIndexes.current;
-    this.$notify(prop, indexes);
     return true;
   }
 

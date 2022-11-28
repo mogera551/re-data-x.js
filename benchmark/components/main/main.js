@@ -16,6 +16,7 @@ class ViewModel {
     const index = this.list.findIndex(item => item.id === this.selected);
     index != null && this.$notify("list.*.selected", [index]);
     this.selected = this.list[$1].id;
+    this.$notify("list.*.selected", [$1]);    
   }
   removeItem(e, $1) {
     this.list.splice($1, 1);
@@ -46,10 +47,6 @@ class ViewModel {
       this["list.998"] = row;
     }
   }
-
-  $relativeProps = [
-    [ "list.*.selected", [ "selected" ] ],
-  ]
 }
 
 export default { ViewModel, html }

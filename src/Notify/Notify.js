@@ -1,5 +1,6 @@
 import NotifyData from "./NotifyData.js";
 import { Component } from "../Component/WebComponent.js";
+import DefinedProperty from "../ViewModel/DefinedProperty.js";
 
 export default class {
   /**
@@ -86,10 +87,10 @@ export default class {
                 .flatMap(notification => viewModelProxy.$onNotify(notification))
                 .filter(notification => notification != null)
                 .flatMap(notification => {
-                  const level = notification.prop.match(/\*/g)?.length ?? 0;
-                  if (notification.indexes.length < level) {
-                    const activeProperties2 = component.activeProperties2.search(notification.prop, notification.indexes) ?? [];
-                    return activeProperties2.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes))
+                  const definedProp = DefinedProperty.create(notification.prop);
+                  if (notification.indexes.length < definedProp.level) {
+                    const activeProperties = component.activeProperties.search(notification.prop, notification.indexes) ?? [];
+                    return activeProperties.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes))
                   } else {
                     return new NotifyData(component, notification.prop, notification.indexes);
                   }
@@ -105,7 +106,15 @@ export default class {
             } else {
               setOfRelativeProp = setOfRelativePropsByProp.get(notification.prop) ?? new Set;
             }
-            addNotifications.push(...Array.from(setOfRelativeProp).map(prop => new NotifyData(component, prop, notification?.indexes))) ;
+            addNotifications.push(...Array.from(setOfRelativeProp).flatMap(prop => {
+              const definedProp = DefinedProperty.create(prop);
+              if (notification.indexes.length < definedProp.level) {
+                const activeProperties = component.activeProperties.search(prop, notification.indexes) ?? [];
+                return activeProperties.map(activeProperty => new NotifyData(component, activeProperty.name, activeProperty.indexes));
+              } else {
+                return new NotifyData(component, prop, notification?.indexes);
+              }
+            })) ;
           }
           return addNotifications;
         }

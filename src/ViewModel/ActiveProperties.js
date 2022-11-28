@@ -104,7 +104,8 @@ export default class ActiveProperties2 {
    search(name, indexes) {
     const activeProperties = this.activePropertiesByName.get(name) ?? [];
     const compString = indexes.toString();
-    return activeProperties.filter(property => indexes.length === 0 ? true : property.indexesStrings[indexes.length - 1] === compString);
+    const isTopLevel = indexes.length === 0;
+    return activeProperties.filter(property => isTopLevel ? true : property.indexesStrings[indexes.length - 1] === compString);
   }
 
   /**
@@ -157,7 +158,7 @@ export default class ActiveProperties2 {
       const walk = (parentProp, indexes) => {
         const activeProperty = ActiveProperty.create(parentProp.name, indexes);
         //console.log(activeProperty);
-        const values = viewModel.$getValue(activeProperty.name, activeProperty.indexes, activeProperty.path);
+        const values = viewModel.$getValue(activeProperty);
         const keys = Object.keys(values);
         profiles.push(Object.assign(new ActivePropertyProfile, { activeProperty, keys }));
         const closestChildProps = this.definedPropertiesOfList.filter(prop => prop.closestListName === parentProp.name);

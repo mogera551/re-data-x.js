@@ -97,7 +97,7 @@ export default class ActiveProperty {
    * @returns {any}
    */
   static getValue(viewModelProxy, property) {
-    return viewModelProxy.$getValue(property.name, property.indexes, property.path);
+    return viewModelProxy.$getValue(property);
   }
 
   /**
@@ -107,7 +107,7 @@ export default class ActiveProperty {
    * @returns {true}
    */
   static setValue(viewModelProxy, property, value) {
-    viewModelProxy.$setValue(property.name, property.indexes, property.path, value);
+    viewModelProxy.$setValue(property, value);
     return true;
   }
   

@@ -5,7 +5,7 @@ import Binder from "../BoundNode/Binder.js";
 import Stack from "./Stack.js";
 import Thread from "../Thread/Thread.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
-import ActiveProperties2 from "../ViewModel/ActiveProperties2.js";
+import ActiveProperties from "../ViewModel/ActiveProperties.js";
 import BoundComponent from "../BoundNode/BoundComponent.js";
 import BoundNode from "../BoundNode/BoundNode.js";
 
@@ -264,16 +264,16 @@ export default class BaseComponent extends HTMLElement {
   /**
    * @type {ActiveProperties}
    */
-  activeProperties2;
+  activeProperties;
 
   /**
    * @type {Map<string,ActiveProperty>}
    */
   updateActiveProperty() {
-    if (this.activeProperties2 == null) {
-      this.activeProperties2 = new ActiveProperties2(this.viewModelProxy.$definedProperties);
+    if (this.activeProperties == null) {
+      this.activeProperties = new ActiveProperties(this.viewModelProxy.$definedProperties);
     }
-    this.activeProperties2.build(this.viewModelProxy);
+    this.activeProperties.build(this.viewModelProxy);
   }
   /**
    * 接続時コールバック
