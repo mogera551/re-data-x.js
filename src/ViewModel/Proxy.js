@@ -3,6 +3,7 @@ import Builder from "./Builder.js";
 import utils from "../utils.js";
 import WebComponent, { Component } from "../Component/WebComponent.js";
 import CheckPoint from "../CheckPoint/CheckPoint.js";
+import ActiveProperty from "./ActiveProperty.js";
 
 /**
  * @type {Symbol}
@@ -71,29 +72,28 @@ class Cache extends Map {
 
   /**
    * 要素の追加、更新
-   * @param {string|Symbol} key 
+   * @param {ActiveProperty} property 
    * @param {any} value 
    * @returns {Cache}
    */
-  set(key, value) {
+  set(property, value) {
     const activeProperties = this.#component.activeProperties;
-    if (activeProperties?.has(key)) {
+    if (activeProperties?.has(property.path)) {
       value = value?.[SymIsProxy] ? value[SymRaw] : value;
-      super.set(key, value);
-      this.#debug && !utils.isSymbol(key) && console.log(`cache.set(${key}, ${value}) = ${result}, ${this.#component?.tagName}`);
+      super.set(property, value);
     }
   }
 
   /**
    * 関連する要素を削除
    * "キー."で始まるキーの要素が削除対象
-   * @param {string} key 
+   * @param {ActiveProperty} property 
    */
-  deleteRelative(key) {
+  deleteRelative(property) {
     const activeProperties = this.#component.activeProperties;
-    this.has(key) && this.delete(key);
-    if (activeProperties?.has(key)) {
-      activeProperties.walkByParentPath(key, activeProperty => this.delete(activeProperty.path));
+    this.has(property) && this.delete(property);
+    if (activeProperties?.has(property.path)) {
+      activeProperties.walkByParentPath(property.path, prop => this.delete(prop));
     }
   }
 }
@@ -237,12 +237,12 @@ class Handler {
     const cache = this.cache;
     const component = this.component;
     let result;
-    if (cache.has(property.path)) {
-      result = wrapArrayProxy(component, property.name, cache.get(property.path));
+    if (cache.has(property)) {
+      result = wrapArrayProxy(component, property.name, cache.get(property));
     } else {
       result = component.stackIndexes.push(property.indexes, function () { 
         const value = Reflect.get(target, property.name, receiver);
-        cache.set(property.path, value);
+        cache.set(property, value);
         const result = wrapArrayProxy(component, property.name, value);
         return result;
       });
@@ -265,7 +265,7 @@ class Handler {
     const handler = this;
     component.stackIndexes.push(property.indexes, function () {
       Reflect.set(target, property.name, value, receiver);
-      cache.deleteRelative(property.path);
+      cache.deleteRelative(property);
       Reflect.apply(notify, handler, [property.name, property.indexes ?? []]);
       return true;
     });
@@ -325,7 +325,8 @@ class Handler {
   $deleteCache(setOfPath) {
     const cache = this.cache;
     for(const path of Array.from(setOfPath)) {
-      cache.deleteRelative(path);
+      const prop = ActiveProperty.getByPath(path);
+      prop && cache.deleteRelative(prop);
     }
   }
 
