@@ -8,3 +8,15 @@
 * Web Componentベース
 * 他のライブラリに依存しない
 * おじさんに優しい
+
+### インストール
+* CDNの場合
+
+```html
+<html>
+<script src="https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/dist/re-data-x.min.js"></script>
+
+</html>
+```
+
+* ダウンロードの場合
