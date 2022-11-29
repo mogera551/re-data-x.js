@@ -12,60 +12,34 @@
 ## 使い方
 1. CDNからre-data-x.jsを読み込む
 2. コンポーネントのカスタムタグを書く
-3. コンポーネントのテンプレートと状態を持つクラスを定義する
-4. コンポーネントのテンプレートとクラスを登録する
+3. コンポーネントのテンプレート（html）と状態を持つクラス（ViewModel）を定義する
+4. コンポーネントのテンプレートとクラスをカスタムタグに関連付ける
 
 ```html
 <html>
+<!-- 1.CDNからre-data-x.jsを読み込む -->
 <script src="https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/dist/re-data-x.min.js"></script>
 
+<!-- 2.コンポーネントのカスタムタグを書く -->
 <myapp-main></myapp-main>
 
+<!-- scriptは、moduleを利用 -->
 <script type="module">
+
+// 3.コンポーネントのテンプレートと状態を持つクラスを定義する
+//   テキストノードにバインドするプロパティを埋め込む場合、｛｝で括る
 const html = '<div>{message}</div>';
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
 
+// 4.コンポーネントのテンプレートとクラスをカスタムタグに関連付ける
 redatax.components({"myapp-main": { html, ViewModel }});
+
 </script>
 </html>
 ```
 [CodePen](https://codepen.io/mogera551/pen/OJEwOGr)
-
-CDNからre-data-x.jsを読み込む
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/dist/re-data-x.min.js"></script>
-```
-
-カスタムタグ（コンポーネント）の記述
-
-```html
-<myapp-main></myapp-main>
-```
-
-スクリプトタグはモジュールにする
-
-```html
-<script type="module">
-```
-
-コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を定義する。
-テキストノードとしてバインドする場合、ViewModelクラスのプロパティを{}内に記述する。
-
-```js
-const html = '<div>{message}</div>';
-class ViewModel {
-  "message" = "welcome to re-data-x.js";
-}
-```
-
-コンポーネント（html、ViewModel）をカスタムタグ（"myapp-main"）として登録する。
-
-```js
-redatax.components({"myapp-main": { html, ViewModel }});
-```
 
 ### コンポーネントのモジュール化
 コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を外部ファイルに定義する。
@@ -78,7 +52,7 @@ src/tool/importText.jsをコピーする。
     + importText.js
     + main.js
     + main.html
-```
+```    
 
 index.html
 ```html
@@ -88,21 +62,28 @@ index.html
 <myapp-main></myapp-main>
 
 <script type="module">
+
+// コンポーネントをインポート
 import main from "./components/main.js"
-  
+
+// プレフィックスを指定することで、コンポーネント登録時にカスタムタグのプレフィックスを省略できる。
 redatax.prefix("myapp").components({ main });
+
 </script>
 </html>
 ```
 
 main.js
 ```js
+// importText.jsを使ってテンプレートをインポート
+// pathには、index.htmlからの相対パスを指定
 import html from "./importText.js?path=./components/main.html";
 
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
 
+// テンプレートとクラスをエクスポート
 export default { html, ViewModel };
 ```
 
@@ -111,16 +92,5 @@ main.html
 <div>{message}</div>
 ```
 
-プレフィックスを指定することで、コンポーネント登録時にカスタムタグのプレフィックスを省略できる。
-
-```js
-redatax.prefix("myapp").components({ main });
-```
-
-importText.jsを使ってテンプレート（html）のインポート
-
-```js
-import html from "./importText.js?path=./components/main.html";
-```
 
 
