@@ -22,7 +22,7 @@ class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
 
-redatax.components("myapp-main": { html, ViewModel });
+redatax.components({"myapp-main": { html, ViewModel }});
 </script>
 </html>
 ```
