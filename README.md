@@ -22,7 +22,7 @@
 <myapp-main></myapp-main>
 
 <script type="module">
-const html = '<div data-bind="message"></div>';
+const html = '<div>{message}</div>';
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
@@ -52,10 +52,10 @@ CDNからre-data-x.jsを読み込む
 ```
 
 コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を定義する。
-htmlの要素のdata-bind属性に、バインドするViewModelクラスのプロパティを記述する。
+テキストノードとしてバインドする場合、ViewModelクラスのプロパティを{}内に記述する。
 
 ```js
-const html = '<div data-bind="message"></div>';
+const html = '<div>{message}</div>';
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
@@ -108,14 +108,7 @@ export default { html, ViewModel };
 
 main.html
 ```html
-<div data-bind="message"></div>
-```
-
-
-mainコンポーネントをインポート
-
-```js
-import main from "./components/main.js"
+<div>{message}</div>
 ```
 
 プレフィックスを指定することで、コンポーネント登録時にカスタムタグのプレフィックスを省略できる。
@@ -124,15 +117,10 @@ import main from "./components/main.js"
 redatax.prefix("myapp").components({ main });
 ```
 
-テンプレート（html）のインポート
+importText.jsを使ってテンプレート（html）のインポート
 
 ```js
 import html from "./importText.js?path=./components/main.html";
 ```
 
-コンポーネントのエクスポート
-
-```js
-export default { html, ViewModel };
-```
 
