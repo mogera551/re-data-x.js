@@ -27,8 +27,7 @@
 <script type="module">
 
 // 3.コンポーネントのテンプレートと状態を持つクラスを定義する
-//   テキストノードにバインドするプロパティを埋め込む場合、｛｝で括る
-const html = '<div>{message}</div>';
+const html = '<div>{message}</div>'; // messageプロパティをバインド
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
@@ -43,7 +42,7 @@ redatax.components({"myapp-main": { html, ViewModel }});
 
 ### コンポーネントのモジュール化
 コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を外部ファイルに定義する。
-src/tool/importText.jsをコピーする。
+src/tool/importText.jsをコピーして使用する。
 
 ファイル構成
 ```
@@ -73,6 +72,11 @@ redatax.prefix("myapp").components({ main });
 </html>
 ```
 
+main.html
+```html
+<div>{message}</div>
+```
+
 main.js
 ```js
 // importText.jsを使ってテンプレートをインポート
@@ -86,11 +90,3 @@ class ViewModel {
 // テンプレートとクラスをエクスポート
 export default { html, ViewModel };
 ```
-
-main.html
-```html
-<div>{message}</div>
-```
-
-
-
