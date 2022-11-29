@@ -47,7 +47,7 @@ CDNからre-data-x.jsを読み込む
 <script type="module">
 ```
 
-コンポーネントを構成しているテンプレートとなるhtmlと、状態を保存するViewModelクラスを定義する。
+コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を定義する。
 htmlの要素のdata-bind属性に、バインドするViewModelクラスのプロパティを記述する。
 
 ```js
