@@ -63,4 +63,31 @@ class ViewModel {
 redatax.components({"myapp-main": { html, ViewModel }});
 ```
 
+### コンポーネントのモジュール化
+コンポーネントを構成するテンプレート（html）と、状態を保存するクラス（ViewModel）を外部ファイルに定義する。
+
+index.html
+```html
+<html>
+<script src="https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/dist/re-data-x.min.js"></script>
+
+<myapp-main></myapp-main>
+
+<script type="module">
+import main from "./main.js"
+  
+redatax.prefix("myapp").components({ main });
+</script>
+</html>
+```
+
+main.js
+```js
+const html = '<div data-bind="message"></div>';
+class ViewModel {
+  "message" = "welcome to re-data-x.js";
+}
+
+export default { html, ViewModel };
+```
 
