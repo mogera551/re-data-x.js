@@ -57,7 +57,7 @@ class ViewModel {
 }
 ```
 
-コンポーネント（html、ViewModel）を"myapp-main"をいう名で登録する。
+コンポーネント（html、ViewModel）をカスタムタグ（"myapp-main"）として登録する。
 
 ```js
 redatax.components({"myapp-main": { html, ViewModel }});
