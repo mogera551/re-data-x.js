@@ -41,7 +41,7 @@ redatax.components({"myapp-main": { html, ViewModel }});
 [CodePen](https://codepen.io/mogera551/pen/OJEwOGr)
 
 ### コンポーネントのモジュール化
-コンポーネントを構成するテンプレート（html）と、状態を保持するクラス（ViewModel）を外部ファイルとして分離する。
+コンポーネントを構成するテンプレート（html）と、状態を保持するクラス（ViewModel）を外部ファイルとして分離することができます。
 src/tool/importText.jsをコピーして使用する。
 
 ファイル構成
@@ -108,9 +108,9 @@ const member = {
 }
 
 const products = [
-  { name:"商品名A", price:500, tax_parcent:8 },
-  { name:"商品名B", price:600, tax_parcent:10 },
-  { name:"商品名C", price:250, tax_parcent:10 },
+  { id:1, name:"商品名A", price:500, tax_parcent:8 },
+  { id:2, name:"商品名B", price:600, tax_parcent:10 },
+  { id:3, name:"商品名C", price:250, tax_parcent:10 },
 ];
 
 class ViewModel {
@@ -129,6 +129,7 @@ class ViewModel {
   "products" = products;
   // アスタリスク（*）を用いてリスト構造を表現
   "products.*";
+  "products.*.id";
   "products.*.name";
   "products.*.price";
   "products.*.tax_percent";
@@ -152,6 +153,7 @@ main.html
 
 <table>
   <tr>
+    <th>ID</th>
     <th>商品名</th>
     <th>価格</th>
     <th>適用消費税</th>
@@ -159,6 +161,7 @@ main.html
   </tr>
   <template data-bind="products">
   <tr>
+    <td>{products.*.id}</td>
     <td>{products.*.name}</td>
     <td>{products.*.price}</td>
     <td>{products.*.tax_percent}</td>
@@ -180,24 +183,28 @@ HTML出力例
 
 <table>
   <tr>
+    <th>ID</th>
     <th>商品名</th>
     <th>価格</th>
     <th>適用消費税</th>
     <th>消費税額</th>
   </tr>
   <tr>
+    <td>1</td>
     <td>商品名A</td>
     <td>500</td>
     <td>8</td>
     <td>40</td>
   </tr>
   <tr>
+    <td>2</td>
     <td>商品名B</td>
     <td>600</td>
     <td>10</td>
     <td>60</td>
   </tr>
   <tr>
+    <td>3</td>
     <td>商品名C</td>
     <td>250</td>
     <td>10</td>
@@ -205,5 +212,29 @@ HTML出力例
   </tr>
 </table>
 
+```
+
+### テンプレートのプロパティバインド方法
+* テキストとしてバインドする場合、プロパティを\{\}でくくる
+* HTML要素の属性値とバインドする場合、data-bind属性に記述する
+  * 書式は、「属性名:プロパティ」※style属性と同じような書式
+  * 属性名を省略した場合、下記の属性名をデフォルト値とする
+     * checkbox、radioの要素の場合、checked
+     * 入力系の要素の場合、value
+     * その他、textContent
+  * 入力系要素の場合、バインドは双方向となる。入力値がプロパティへ反映される
+* リストなど、繰り返し構造を持つプロパティとバインドする場合、template要素のdata-bind属性にプロパティを記述する。
+
+```html
+<div>{message}</div>
+<input data-bind="message">
+<button data-bind="disabled:isEmptyMessage">登録</button>
+
+<select data-bind="selectProduct">
+  <template data-bind="products">
+    <option data-bind="products.*.id">{products.*.name}</option>
+  </template>
+</select>
 
 ```
+
