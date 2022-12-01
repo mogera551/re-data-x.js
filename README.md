@@ -217,20 +217,21 @@ HTML出力例
 ### テンプレートのプロパティバインド方法
 * テキストとしてバインドする場合、プロパティを\{\}でくくる
 * HTML要素の属性値とバインドする場合、data-bind属性に記述する
-  * 書式は、「属性名:プロパティ」※style属性と同じような書式
+  * 書式は、「属性名:プロパティ;」※style属性と同じような書式
   * 属性名を省略した場合、下記の属性名をデフォルト値とする
      * checkbox、radioの要素の場合、checked
      * 入力系の要素の場合、value
      * その他、textContent
   * 入力系要素の場合、バインドは双方向となる。入力値がプロパティへ反映される
 * リストなど、繰り返し構造を持つプロパティとバインドする場合、template要素のdata-bind属性にプロパティを記述する。
+* on～イベントもdata-bind属性で指定する
 
 ```html
 <div>{message}</div>
 <input data-bind="message">
-<button data-bind="disabled:isEmptyMessage">登録</button>
+<button data-bind="disabled:isEmptyMessage; onclick:regist">登録</button>
 
-<select data-bind="selectProduct">
+<select data-bind="selectProductId">
   <template data-bind="products">
     <option data-bind="products.*.id">{products.*.name}</option>
   </template>
@@ -238,3 +239,24 @@ HTML出力例
 
 ```
 
+```js
+
+class ViewModel {
+  "message" = "";
+  get "isEmptyMessage"() {
+    return this["message"] ? true : false;
+  }
+  
+  "produts" = [
+    { id:1, name:"商品名A", price:500, tax_parcent:8 },
+    { id:2, name:"商品名B", price:600, tax_parcent:10 },
+    { id:3, name:"商品名C", price:250, tax_parcent:10 },
+  ];
+  "products.*";
+  "products.*.id";
+  "products.*.name";
+  
+  "selectProductId";
+}
+
+```
