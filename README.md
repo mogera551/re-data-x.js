@@ -257,6 +257,11 @@ class ViewModel {
   "products.*.name";
   
   "selectProductId";
+  
+  regist() {
+    // 登録処理
+    // 非同期の場合、async regist()とする
+  }
 }
 
 ```
