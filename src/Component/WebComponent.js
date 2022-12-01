@@ -10,7 +10,7 @@ class ComponentDataByTagName extends Map {
    * タグ名とコンポーネントデータの関連付けする。
    * コンポーネントクラスを作成し、カスタムエレメンツに登録する
    * @param {string} lowerTagName 
-   * @param {CompoentnData} componentData 
+   * @param {ComponentData} componentData 
    */
   set(lowerTagName, componentData) {
     super.set(lowerTagName.toUpperCase(), componentData);
