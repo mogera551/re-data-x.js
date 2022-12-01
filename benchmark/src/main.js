@@ -1,5 +1,5 @@
-import html from "../../../src/tool/importText.js?path=./components/main/main.html";
-import buildData from "../../buildData.js";
+import html from "https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@v0.0.3/src/tool/importText.js?path=./src/main.html";
+import buildData from "./buildData.js";
 
 class ViewModel {
   "list" = [];
