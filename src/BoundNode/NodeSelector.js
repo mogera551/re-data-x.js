@@ -30,6 +30,7 @@ export default class NodeSelector {
    * data-bind属性を持つ要素を取得し、そのバインドノードを作成し、data-bind属性をパースする
    * <!--@@param-->を持つコメントノードを取得し、そのバインドノードを作成し、パースする
    * テンプレートに対するキャッシュを保持する
+   * そのあとバインドノードに対してbind()を実行する
    * @param {Component} parentComponent 
    * @param {HTMLElement} documentRoot パースを開始する要素 
    * @param {HTMLTemplateElement} template テンプレート
@@ -85,6 +86,7 @@ export default class NodeSelector {
       // BoundNodeを作成する
       boundNodes.push(...nodes.map(node => Factory.create(parentComponent, node, indexes)));
     }
+    // バインドノードに対してbind()を実行する
     boundNodes.forEach(node => node.bind());
     return boundNodes;
   }

@@ -12,7 +12,7 @@ class GlobalHandler {
    */
   set(target, prop, value, receiver) {
     Reflect.set(target, prop, value, receiver);
-    Binder.rootBinder.update(new Set([prop]), new Set([`$$${prop}`]));
+    Binder.rootBinder.updateForNotify(new Set([prop]), new Set([`$$${prop}`]));
     return true;
   }
 }

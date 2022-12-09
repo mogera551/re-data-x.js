@@ -63,7 +63,7 @@ export default class BaseComponent extends HTMLElement {
    */
   binder;
   /**
-   * @type {Array<integer>}
+   * @type {integer[]}
    */
   stackIndexes;
  
@@ -102,6 +102,8 @@ export default class BaseComponent extends HTMLElement {
     this.view = this.createView();
     this.binder = new Binder(this);
     this.stackIndexes = new Stack();
+    this.activeProperties = new ActiveProperties(this.viewModelProxy.$definedProperties);
+    this.updateActiveProperty(); 
   }
   
   /**
@@ -218,7 +220,8 @@ export default class BaseComponent extends HTMLElement {
    */
   async topComponentInit() {
     Thread.current.asyncProc(async () => {
-      const boundNode = new BoundNode(null, this, []);
+      const boundNode = new BoundComponent(this, null, []);
+      boundNode.bind();
       await this.viewModelProxy.$init();
       this.updateActiveProperty();
       Binder.rootBinder.add(boundNode);
@@ -270,9 +273,6 @@ export default class BaseComponent extends HTMLElement {
    * @type {Map<string,ActiveProperty>}
    */
   updateActiveProperty() {
-    if (this.activeProperties == null) {
-      this.activeProperties = new ActiveProperties(this.viewModelProxy.$definedProperties);
-    }
     this.activeProperties.build(this.viewModelProxy);
   }
   /**
