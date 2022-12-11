@@ -73,7 +73,7 @@ export default class ActiveProperty {
   static cacheActivePropertyByPath = new Map();
   /**
    * 
-   * @param {string} name 
+   * @param {string | DefinedProperty} name 
    * @param {integer[]?} indexes 
    * @returns {ActiveProperty}
    */
@@ -90,6 +90,27 @@ export default class ActiveProperty {
       this.cacheActivePropertyByPath.set(path, activeProperty);
       return activeProperty;
     }
+  }
+
+  /**
+   * 
+   * @param {DefinedProperty} definedProp 
+   * @param {integer[]?} indexes 
+   * @returns {ActiveProperty}
+   */
+  static createByDefinedProperty(definedProp, indexes = []) {
+    const indexesString = indexes.toString();
+    const key = definedProp.name + "\t" + indexesString;
+    if (this.cacheActivePropertyByKey.has(key)) {
+      return this.cacheActivePropertyByKey.get(key);
+    } else {
+      const path = utils.getPath(definedProp.name, indexes);
+      const activeProperty = new ActiveProperty(definedProp, path, indexes, indexesString, key);
+      this.cacheActivePropertyByKey.set(key, activeProperty);
+      this.cacheActivePropertyByPath.set(path, activeProperty);
+      return activeProperty;
+    }
+
   }
 
   /**

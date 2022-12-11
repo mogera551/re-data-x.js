@@ -459,6 +459,10 @@ class Handler {
     if (prop in target) return true;
     return Reflect.has(target, prop, receiver);
   }
+
+  isActiveProperty(name) {
+
+  }
 }
 
 const ViewModelProxy = Proxy;

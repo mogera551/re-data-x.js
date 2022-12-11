@@ -8,6 +8,7 @@ import ActiveProperty from "../ViewModel/ActiveProperty.js";
 import ActiveProperties from "../ViewModel/ActiveProperties.js";
 import BoundComponent from "../BoundNode/BoundComponent.js";
 import BoundNode from "../BoundNode/BoundNode.js";
+import DefinedProperty from "../ViewModel/DefinedProperty.js";
 
 /**
  * Componentのベース、HTMLElementを拡張します。
@@ -66,6 +67,14 @@ export default class BaseComponent extends HTMLElement {
    * @type {integer[]}
    */
   stackIndexes;
+  /**
+   * @type {ActiveProperties}
+   */
+  activeProperties;
+  /**
+   * @type {DefinedProperty[]}
+   */
+  definedProperties;
  
   /**
    * コンストラクタ
@@ -102,6 +111,7 @@ export default class BaseComponent extends HTMLElement {
     this.view = this.createView();
     this.binder = new Binder(this);
     this.stackIndexes = new Stack();
+    this.definedProperties = this.viewModelProxy.$definedProperties;
     this.activeProperties = new ActiveProperties(this.viewModelProxy.$definedProperties);
     this.updateActiveProperty(); 
   }
@@ -263,11 +273,6 @@ export default class BaseComponent extends HTMLElement {
       this.#initializeResolve(true);
     }
   }
-
-  /**
-   * @type {ActiveProperties}
-   */
-  activeProperties;
 
   /**
    * @type {Map<string,ActiveProperty>}

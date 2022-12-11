@@ -17,8 +17,8 @@ export default class DefinedProperty {
     // name = list.*.id
     // paths = [list, *, id]
     // last = id
-    // level = 1
-    // regexp = ^list\.[w+]\.id$
+    // level = 1, *の数
+    // regexp = ^list\.[\\w+]\.id$
     // parentPaths = [ list, * ]
     // parentPath = list.*
     // listParentPaths = [ [ list, * ], [ list ] ]
@@ -33,11 +33,13 @@ export default class DefinedProperty {
     this.last = this.paths[this.paths.length - 1] ?? null;
     this.level = name.match(/\*/g)?.length ?? 0;
     this.regexp = (this.level > 0) ? new RegExp("^" + name.replaceAll("*", "(\\w+)").replaceAll(".", "\\.") + "$") : null;
-    this.closestListName = null;
-    this.listPaths = [ this.paths ];
+
+    this.listPaths = [this.paths];
     for(let i = 1; i < this.paths.length; i++) {
       this.listPaths.push(this.paths.slice(0, -i));
     }
+
+    this.closestListName = null;
     for(let i = 0; i < this.paths.length; i++) {
       const paths = this.listPaths[i];
       if (paths[paths.length - 1] === "*" && this.closestListName === null) {
