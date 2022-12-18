@@ -12,8 +12,8 @@
 ## 使い方
 1. CDNからre-data-x.jsを読み込む
 2. コンポーネントのカスタムタグを書く
-3. コンポーネントのテンプレート（html）と状態を保持するクラス（ViewModel）を定義する
-4. コンポーネントのテンプレートとクラスをカスタムタグに関連付ける
+3. コンポーネントを定義する
+4. コンポーネントをカスタムタグに関連付ける
 
 ```html
 <html>
@@ -26,13 +26,13 @@
 <!-- scriptは、moduleを利用 -->
 <script type="module">
 
-// 3.コンポーネントのテンプレートと状態を保持するクラスを定義する
+// 3.コンポーネントを定義する。テンプレートと状態を保持するクラスを定義する。
 const html = '<div>{message}</div>'; // messageプロパティをバインド
 class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
 
-// 4.コンポーネントのテンプレートとクラスをカスタムタグに関連付ける
+// 4.コンポーネントをカスタムタグに関連付ける
 redatax.components({"myapp-main": { html, ViewModel }});
 
 </script>
@@ -41,16 +41,13 @@ redatax.components({"myapp-main": { html, ViewModel }});
 [CodePen](https://codepen.io/mogera551/pen/OJEwOGr)
 
 ### コンポーネントのモジュール化
-コンポーネントを構成するテンプレート（html）と、状態を保持するクラス（ViewModel）を外部ファイルとして分離することができます。
-src/tool/importText.jsをコピーして使用する。
+コンポーネントを外部ファイルとして分離する。
 
 ファイル構成
 ```
 + index.html
 + /components
-    + importText.js
     + main.js
-    + main.html
 ```    
 
 index.html
@@ -72,16 +69,11 @@ redatax.prefix("myapp").components({ main });
 </html>
 ```
 
-main.html
-```html
-<div>{message}</div>
-```
-
 main.js
 ```js
-// importText.jsを使ってテンプレートをインポート
-// pathには、index.htmlからの相対パスを指定
-import html from "./importText.js?path=./components/main.html";
+const html = `
+<div>{message}</div>
+`;
 
 class ViewModel {
   "message" = "welcome to re-data-x.js";
