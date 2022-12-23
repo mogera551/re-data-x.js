@@ -259,7 +259,7 @@ export default class ActiveProperties2 {
     //console.log(appendingProperties);
     //console.log(deletingProperties);
     this.lastProfiles = profiles;
-    if (changed) {
+    if (changed || (this.fixedActiveProperties.length > 0 && this.activeProperties.length === 0)) {
       const activeProperties = this.fixedActiveProperties.slice();
       this.variableActivePropertiesByProp.forEach(properties => {
         activeProperties.push(...properties);
