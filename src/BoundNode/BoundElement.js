@@ -39,19 +39,22 @@ export default class BoundElement extends BoundNode {
    */
   bind() {
     const bindText = this.element.dataset["bind"] ?? "";
+    let defaultNodeProperty = null;
     const isSetInputEvent  = ParseFunc.parseBinds(bindText, this.defaultProperty).map(([propName, viewModelPropName, filters]) => {
       if (propName.startsWith("on")) {
         this.bindEventHandler(propName, viewModelPropName);
       } else {
         const {nodeProperty, viewModelProperty} = this.bindProperty(propName, viewModelPropName, filters);
+        (propName === "radio" || propName === "checkbox" || propName === "file" || this.defaultProperty === propName)
+         && (defaultNodeProperty = nodeProperty);
         this.assignNodeValue(nodeProperty, viewModelProperty, filters);
       }
       return (propName === "oninput");
     }).filter(v => v).length > 0;
 
     // デフォルトイベントの設定
-    if (!isSetInputEvent && this.defaultProperty !== "textContent") {
-      const nodeProperty = NodeProperty.create(this.defaultProperty);
+    if (!isSetInputEvent && this.defaultProperty !== "textContent" && defaultNodeProperty != null) {
+      const nodeProperty = defaultNodeProperty;
       if (this.viewModelPropInfoByNodeProperty.has(nodeProperty)) {
         this.element.addEventListener("input", event => {
           event.stopPropagation();
