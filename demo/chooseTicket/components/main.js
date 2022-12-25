@@ -1,4 +1,18 @@
-import html from "../../../../dist/importText.js?path=./components/main/main.html";
+
+const html = `
+Choose a ticket class:
+<select data-bind="selectTicketId">
+  <option value="">Choose...</option>
+  <template data-bind="tickets">
+    <option data-bind="tickets.*.id">{tickets.*.name}</option>
+  </template>
+</select>
+<button type="button" data-bind="onclick:clear">Clear</button>
+<p data-bind="style.display:selectTicket|styleDisplay">
+  You have chosen <b>{selectTicket.name}</b>
+  (\${selectTicket.price})
+</p>
+`;
 
 const tickets = [
   { id:1, name:"Economy", price: 199.95 },
