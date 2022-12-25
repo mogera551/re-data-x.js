@@ -266,7 +266,7 @@ class Handler {
     component.stackIndexes.push(property.indexes, function () {
       Reflect.set(target, property.name, value, receiver);
       cache.deleteRelative(property);
-      Reflect.apply(notify, handler, [property.name, property.indexes ?? []]);
+      Reflect.apply(notify, handler, [property.name, property.indexes ?? [], target, receiver]);
       return true;
     });
   }
@@ -274,12 +274,13 @@ class Handler {
   /**
    * 非同期処理を登録
    * ViewModelから呼ばれることを想定
-   * @param  {...any} args [proc, params?, receiver, target]
+   * @param  {[proc:()=>{}, params:any[]?, target:ViewModel, receiver:Proxy]} args
    */
   $asyncProc(...args) {
     const receiver = args.pop();
     const target = args.pop();
-    Thread.current.asyncProc(args[0], receiver, args[1] ?? []);
+    const [ proc, params = [] ] = args;
+    Thread.current.asyncProc(proc, receiver, params);
   }
 
   /**
@@ -288,15 +289,16 @@ class Handler {
    * $$で始まるプロパティは対象外
    * インポートしたプロパティは対象外
    * ViewModelから呼ばれることを想定
-   * @param {string} prop 
-   * @param {Array<integer>} indexes 
-   * @returns 
+   * @param {[prop:string, indexes:integer[]?, target:ViewModel, receiver:Proxy]} args 
    */
-  $notify(prop, indexes) {
+  $notify(...args) {
+    const receiver = args.pop();
+    const target = args.pop();
+    const [ prop, indexes = [] ] = args;
     if (prop.startsWith("__")) return;
     if (prop.startsWith("$")) return;
     if (this.setOfImportProps.has(prop)) return;
-    Thread.current.notify(this.component, prop, indexes ?? []);
+    Thread.current.notify(this.component, prop, indexes);
   }
 
   /**
