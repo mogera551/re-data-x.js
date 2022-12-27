@@ -1,4 +1,11 @@
-import html from "../../../../dist/importText.js?path=./components/main/main.html";
+
+const html = `
+<input placeholder="1000000" maxlength="7" data-bind="zipcode">
+<div>
+  <p>{address}</p>
+  <p>{message}</p>
+</div>  
+`;
 
 const URL_API = "https://api.zipaddress.net/";
 class ViewModel {

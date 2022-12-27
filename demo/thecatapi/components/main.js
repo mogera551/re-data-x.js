@@ -2,13 +2,13 @@ const html = `
 <div>
   <button data-bind="onclick:changeNyanko">今日のにゃんこ</button>
   <div style="margin-top:8px;">
-    <img data-bind="src:imageUrl">
+    <img data-bind="src:imageUrl; style.display:imageUrl|truthy">
   </div>
 </div>
 `;
 
 class ViewModel {
-  "imageUrl" = "https://cdn2.thecatapi.com/images/bpc.jpg";
+  "imageUrl" = "";
 
   async changeNyanko() {
     try {
@@ -18,7 +18,10 @@ class ViewModel {
     } catch(e) {
       alert(e.message);
     }
+  }
 
+  async $onInit() {
+    await this.changeNyanko();
   }
 
 }
