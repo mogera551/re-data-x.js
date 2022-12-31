@@ -5,7 +5,7 @@ const html = `
     <h1>todos</h1>
     <input class="new-todo" data-bind="content; onkeypress:keypress" placeholder="What needs to be done?" autofocus="">
   </header>
-  <section class="main" data-bind="style.display:todoItems.length|gt,0|styleDisplay;">
+  <section class="main" data-bind="style.display:all.length|gt,0|styleDisplay;">
     <input class="toggle-all" id="toggle-all" type="checkbox" data-bind="onclick:toggleCompleteAll">
     <label for="toggle-all">Mark all as complete</label>
     <ul class="todo-list">
@@ -34,6 +34,7 @@ const html = `
         <a data-value="completed" data-bind="onclick:selectStatus; class.selected:status|eq,completed">Completed</a>
       </li>
     </ul>
+    <button class="clear-completed" data-bind="onclick:clearCompleted; style.display:completedItems.length|gt,0|styleDisplay">Clear completed</button>
   </footer>  
 </section>
 `;
@@ -56,6 +57,7 @@ class ViewModel {
   "all" = [];
   "all.*";
   "all.*.completed";
+  "all.*.content";
   "all.*.editing";
   "all.length";
 
@@ -73,6 +75,12 @@ class ViewModel {
     return this.all.filter(active);
   }
   "activeItems.length";
+
+  get "completedItems"() {
+    return this.all.filter(completed);
+  }
+  "completedItems.*";
+  "completedItems.length";
 
   "status" = "all"; // all/active/completed
 
@@ -118,9 +126,20 @@ class ViewModel {
     this.$notify("all");
   }
 
+  clearCompleted() {
+    const completedItems = this.completedItems.slice();
+    for(let i = 0; i < completedItems.length; i++) {
+      const completedTodoItem = completedItems[i];
+      const index = this.all.findIndex(todoItem => todoItem === completedTodoItem);
+      (index >= 0) && this.all.splice(index, 1);
+    }
+    this.$notify("all");
+  }
+
   $relativeProps = [
     [ "todoItems", [ "all", "status" ] ],
     [ "activeItems", [ "all" ] ],
+    [ "completedItems", [ "all" ] ],
   ];
 }
 
