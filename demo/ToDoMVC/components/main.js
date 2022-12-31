@@ -104,9 +104,7 @@ class ViewModel {
     this[`todoItems.*.editing`] = true;
     this.$notify("todoItems.*.editing", [ $1 ]);
     this.$findNode(new Set([`todoItems.${$1}.editing`]), (key, node) => {
-      if (node instanceof HTMLInputElement) {
-        node.focus();
-      }
+      (node instanceof HTMLInputElement) && node.focus();
     });
   }
 
@@ -129,8 +127,7 @@ class ViewModel {
   clearCompleted() {
     const completedItems = this.completedItems.slice();
     for(let i = 0; i < completedItems.length; i++) {
-      const completedTodoItem = completedItems[i];
-      const index = this.all.findIndex(todoItem => todoItem === completedTodoItem);
+      const index = this.all.findIndex(todoItem => todoItem === completedItems[i]);
       (index >= 0) && this.all.splice(index, 1);
     }
     this.$notify("all");
