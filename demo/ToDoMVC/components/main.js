@@ -5,32 +5,33 @@ const html = `
     <h1>todos</h1>
     <input class="new-todo" data-bind="content; onkeypress:keypress" placeholder="What needs to be done?" autofocus="">
   </header>
-  <section class="main" data-bind="style.display:todoItems.length|truthy|styleDisplay;">
+  <section class="main" data-bind="style.display:todoItems.length|gt,0|styleDisplay;">
     <input class="toggle-all" id="toggle-all" type="checkbox" data-bind="onclick:toggleCompleteAll">
     <label for="toggle-all">Mark all as complete</label>
     <ul class="todo-list">
     <template data-bind="todoItems">
-      <li data-bind="class.completed:todoItems.*.completed">
-        <div class="view">
+      <li data-bind="class.completed:todoItems.*.completed; class.editing:todoItems.*.editing; ondblclick:editItem">
+        <div class="view" data-bind="style.display:todoItems.*.editing|not|styleDisplay">
           <input class="toggle" type="checkbox" data-bind="todoItems.*.completed; oninput:completeItem">
           <label data-bind="class.completed:todoItems.*.completed">{todoItems.*.content}</label>
           <button class="destroy" data-bind="onclick:deleteItem"></button>
         </div>
+        <input class="edit" data-bind="todoItems.*.content; style.display:todoItems.*.editing|styleDisplay,block; onfocusout:endEditing;">
       </li>
-    </template>
+      </template>
     </ul>
   </section>
-  <footer class="footer" data-bind="style.display:all.length|truthy|styleDisplay;">
+  <footer class="footer" data-bind="style.display:all.length|gt,0|styleDisplay;">
     <span class="todo-count"><strong>{activeItems.length}</strong> item left</span>
     <ul class="filters">
       <li>
-        <a data-bind="onclick:selectAll; class.selected:status|eq,all">All</a>
+        <a data-value="all" data-bind="onclick:selectStatus; class.selected:status|eq,all">All</a>
       </li>
       <li>
-        <a data-bind="onclick:selectActive; class.selected:status|eq,active">Active</a>
+        <a data-value="active" data-bind="onclick:selectStatus; class.selected:status|eq,active">Active</a>
       </li>
       <li>
-        <a data-bind="onclick:selectCompleted; class.selected:status|eq,completed">Completed</a>
+        <a data-value="completed" data-bind="onclick:selectStatus; class.selected:status|eq,completed">Completed</a>
       </li>
     </ul>
   </footer>  
@@ -40,6 +41,7 @@ const html = `
 class TodoItem {
   completed = false;
   content;
+  editing = false;
   constructor(content) {
     this.content = content;
   }
@@ -54,6 +56,7 @@ class ViewModel {
   "all" = [];
   "all.*";
   "all.*.completed";
+  "all.*.editing";
   "all.length";
 
   get "todoItems"() {
@@ -63,6 +66,7 @@ class ViewModel {
   "todoItems.*";
   "todoItems.*.completed";
   "todoItems.*.content";
+  "todoItems.*.editing";
   "todoItems.length";
 
   get "activeItems"() {
@@ -88,16 +92,23 @@ class ViewModel {
     (index >= 0) && this.all.splice(index, 1);
   }
 
-  selectAll() {
-    this["status"] = "all";
+  editItem(e, $1) {
+    this[`todoItems.*.editing`] = true;
+    this.$notify("todoItems.*.editing", [ $1 ]);
+    this.$findNode(new Set([`todoItems.${$1}.editing`]), (key, node) => {
+      if (node instanceof HTMLInputElement) {
+        node.focus();
+      }
+    });
   }
 
-  selectActive() {
-    this["status"] = "active";
+  endEditing(e, $1) {
+    this[`todoItems.*.editing`] = false;
+    this.$notify("todoItems.*.editing", [ $1 ]);
   }
 
-  selectCompleted() {
-    this["status"] = "completed";
+  selectStatus(e) {
+    this["status"] = e.target.dataset.value;
   }
 
   toggleCompleteAll(e) {

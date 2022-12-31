@@ -389,7 +389,7 @@ class Handler {
    */
   $findNode(setOfNames, callback) {
     this.component.binder.findNode(setOfNames, callback);
-  }setOfNames
+  }
 
   /**
    * getter
