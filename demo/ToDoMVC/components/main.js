@@ -102,15 +102,13 @@ class ViewModel {
 
   editItem(e, $1) {
     this[`todoItems.*.editing`] = true;
-    this.$notify("todoItems.*.editing", [ $1 ]);
     this.$findNode(new Set([`todoItems.${$1}.editing`]), (key, node) => {
       (node instanceof HTMLInputElement) && node.focus();
     });
   }
 
-  endEditing(e, $1) {
+  endEditing() {
     this[`todoItems.*.editing`] = false;
-    this.$notify("todoItems.*.editing", [ $1 ]);
   }
 
   selectStatus(e) {
