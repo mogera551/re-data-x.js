@@ -403,6 +403,11 @@ class Handler {
       const activeProperty = this.component.activeProperties.get(prop);
       return this.$getValue(activeProperty, target, receiver);
     }
+    const definedProperty = this.component.definedPropertyByName?.get(prop);
+    if (definedProperty != null && definedProperty.isVariable) {
+      const activeProperty = ActiveProperty.create(prop, this.component.stackIndexes.current);
+      return this.$getValue(activeProperty, target, receiver);
+    }
     if (prop in target) {
       const value = Reflect.get(target, prop, receiver);
       const result = wrapArrayProxy(this.component, prop, value);
@@ -438,6 +443,12 @@ class Handler {
   set(target, prop, value, receiver) {
     if (this.component.activeProperties.has(prop)) {
       const activeProperty = this.component.activeProperties.get(prop);
+      this.$setValue(activeProperty, value, target, receiver);
+      return true;
+    }
+    const definedProperty = this.component.definedPropertyByName?.get(prop);
+    if (definedProperty != null && definedProperty.isVariable) {
+      const activeProperty = ActiveProperty.create(prop, this.component.stackIndexes.current);
       this.$setValue(activeProperty, value, target, receiver);
       return true;
     }

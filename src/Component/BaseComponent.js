@@ -4,6 +4,7 @@ import DialogView from "../View/DialogView.js";
 import Binder from "../BoundNode/Binder.js";
 import Stack from "./Stack.js";
 import Thread from "../Thread/Thread.js";
+import DefinedProperty from "../ViewModel/DefinedProperty.js";
 import ActiveProperty from "../ViewModel/ActiveProperty.js";
 import ActiveProperties from "../ViewModel/ActiveProperties.js";
 import BoundComponent from "../BoundNode/BoundComponent.js";
@@ -66,6 +67,18 @@ export default class BaseComponent extends HTMLElement {
    * @type {integer[]}
    */
   stackIndexes;
+  /**
+   * @type {ActiveProperties}
+   */
+  activeProperties;
+  /**
+   * @type {DefinedProperty[]}
+   */
+  definedProperties;
+  /**
+   * @type {Map<string,DefinedProperty>}
+   */
+  definedPropertyByName;
  
   /**
    * コンストラクタ
@@ -102,6 +115,8 @@ export default class BaseComponent extends HTMLElement {
     this.view = this.createView();
     this.binder = new Binder(this);
     this.stackIndexes = new Stack();
+    this.definedProperties = this.viewModelProxy.$definedProperties;
+    this.definedPropertyByName = new Map(this.definedProperties.map(prop => [prop.name, prop]))
     this.activeProperties = new ActiveProperties(this.viewModelProxy.$definedProperties);
     this.updateActiveProperty(); 
   }
@@ -264,10 +279,6 @@ export default class BaseComponent extends HTMLElement {
     }
   }
 
-  /**
-   * @type {ActiveProperties}
-   */
-  activeProperties;
 
   /**
    * @type {Map<string,ActiveProperty>}

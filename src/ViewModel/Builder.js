@@ -3,6 +3,7 @@ import globals from "../Globals/Globals.js";
 import DefinedProperty from "./DefinedProperty.js";
 import {Component} from "../Component/WebComponent.js";
 import CheckPoint from "../CheckPoint/CheckPoint.js";
+import "../types.js";
 
 /**
  * デフォルトのgetter
@@ -163,6 +164,12 @@ const createPrivateDesc = value => ({
 
 export default class {
 
+  /**
+   * 
+   * @param {Component} component 
+   * @param {ViewModel?} viewModel 
+   * @returns {{importProps:string[], arrayProps:string[], setOfRelativePropsByProp:Map<string,string[]>, definedProperties:DefinedProperty[]}}
+   */
   static build(component, viewModel = component.viewModel) {
     // プライベートプロパティ __で始まる
     // コンテキストプロパティ $で始まる
