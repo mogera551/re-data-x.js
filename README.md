@@ -2,15 +2,44 @@
 ## javascriptフレームワーク
 ## 特徴
 * シンプルで簡単に、そしてなるべく直感的に
-* MVVM
-* 宣言的な記述
-* リアクティブ
+* MVVM・リアクティブ・宣言的な記述
+* とくにリストの繰り返し構造を宣言的に記述できる
+```html
+<!-- テンプレート -->
+<ul>
+  <template data-bind="films">
+    <li>{films.*.title}</li>
+  </template>
+</ul>
+```
+
+```JS
+// ViewModelクラス
+class ViewModel {
+  "films" = [
+    { title: "Jaws" },
+    { title: "Star Wars" },
+    { title: "The Terminator" },
+  ];
+  "films.*";
+  "films.*.title";
+}
+```
+
+```html
+<!-- 出力 -->
+<ul>
+  <li>Jaws</li>
+  <li>Star Wars</li>
+  <li>The Terminator</li>
+</ul>
+```
+
 * Web Componentベース
 * 他のライブラリに依存しない
-* おじさんに優しい
 
 ## 使い方
-1. CDNからre-data-x.jsを読み込む
+1. CDNから`re-data-x.js`を読み込む
 2. コンポーネントのカスタムタグを書く
 3. コンポーネントを定義する
 4. コンポーネントをカスタムタグに関連付ける
@@ -23,13 +52,13 @@
 <!-- 2.コンポーネントのカスタムタグを書く -->
 <myapp-main></myapp-main>
 
-<!-- scriptは、moduleを利用 -->
+<!-- scriptは、moduleを指定 -->
 <script type="module">
 
 // 3.コンポーネントを定義する。テンプレートと状態を保持するクラスを定義する。
 const html = '<div>{message}</div>'; // messageプロパティをバインド
 class ViewModel {
-  "message" = "welcome to re-data-x.js";
+  "message" = "welcome to re-data-x.js"; // messageプロパティの内容
 }
 
 // 4.コンポーネントをカスタムタグに関連付ける
@@ -41,7 +70,7 @@ redatax.components({"myapp-main": { html, ViewModel }});
 [CodePen](https://codepen.io/mogera551/pen/OJEwOGr)
 
 ### コンポーネントのモジュール化
-コンポーネントを外部ファイルとして分離する。
+コンポーネントの定義を外部ファイル（`components/main.js`）として分離できる
 
 ファイル構成
 ```
@@ -50,7 +79,11 @@ redatax.components({"myapp-main": { html, ViewModel }});
     + main.js
 ```    
 
-index.html
+#### index.html
+* コンポーネントの定義をインポートする
+* `redatax.components()`でインポートしたコンポーネントの定義をカスタムタグと関連付ける
+* `redatax.prefix()`でカスタムタグのプレフィックスを省略できる
+
 ```html
 <html>
 <script src="https://cdn.jsdelivr.net/gh/mogera551/re-data-x.js@main/dist/re-data-x.min.js"></script>
@@ -58,18 +91,17 @@ index.html
 <myapp-main></myapp-main>
 
 <script type="module">
-
-// コンポーネントをインポート
 import main from "./components/main.js"
 
-// プレフィックスを指定することで、コンポーネント登録時にカスタムタグのプレフィックスを省略できる。
 redatax.prefix("myapp").components({ main });
-
 </script>
 </html>
 ```
 
-main.js
+#### main.js
+* コンポーネントのテンプレート(html)と状態を保持するクラス(ViewModel)を定義しエクスポートする
+* 特に他のファイルをインポートする必要はない
+
 ```js
 const html = `
 <div>{message}</div>
@@ -79,181 +111,128 @@ class ViewModel {
   "message" = "welcome to re-data-x.js";
 }
 
-// テンプレートとクラスをエクスポート
+// テンプレート(html)とクラス(ViewModel)をエクスポート
 export default { html, ViewModel };
 ```
 
-### ViewModelクラスのプロパティの書き方
-* ダブルクォーテーション（\"）で囲む
-* 名前は、英数、アンダーバー（\_）
-* データがオブジェクトなどの階層構造を持つ場合、ドット記法で階層を表現する
-* データがリストなど繰り返し構造を持つ場合、アスタリスク（\*）を用いて表現する
-* getterが使える
-
-main.js
-```js
-
-const member = {
-  family_name:"山田",
-  first_name:"太郎"
-  age:24,
-}
-
-const products = [
-  { id:1, name:"商品名A", price:500, tax_parcent:8 },
-  { id:2, name:"商品名B", price:600, tax_parcent:10 },
-  { id:3, name:"商品名C", price:250, tax_parcent:10 },
-];
-
-class ViewModel {
-  "message" = "おはようございます！";
-  
-  "member" = member;
-  // 階層構造をドット記法を用いて表現
-  "member.family_name";
-  "member.first_name";
-  "member.age";
-  // getterを使って、氏名を取得するプロパティを合成
-  get "member.name"() {
-    return `${this["member.family_name"]} ${this["member.first_name"]}`;
-  }
-  
-  "products" = products;
-  // アスタリスク（*）を用いてリスト構造を表現
-  "products.*";
-  "products.*.id";
-  "products.*.name";
-  "products.*.price";
-  "products.*.tax_percent";
-  // getterを使って、消費税額を取得するプロパティを合成
-  get "products.*.tax"() {
-    // アスタリスク（*）を使って記述できる
-    return this["products.*.price"] * this["products.*.tax_percent"] / 100;
-  }
-}
-
-```
-
-main.html
-```html
-{message}
-
-{member.family_name}
-{member.first_name}
-{member.age}
-{member.name}
-
-<table>
-  <tr>
-    <th>ID</th>
-    <th>商品名</th>
-    <th>価格</th>
-    <th>適用消費税</th>
-    <th>消費税額</th>
-  </tr>
-  <template data-bind="products">
-  <tr>
-    <td>{products.*.id}</td>
-    <td>{products.*.name}</td>
-    <td>{products.*.price}</td>
-    <td>{products.*.tax_percent}</td>
-    <td>{products.*.tax}</td>
-  </tr>
-  </template>
-</table>
-
-```
-
-HTML出力例
-```html
-おはようございます！
-
-山田
-太郎
-24
-山田 太郎
-
-<table>
-  <tr>
-    <th>ID</th>
-    <th>商品名</th>
-    <th>価格</th>
-    <th>適用消費税</th>
-    <th>消費税額</th>
-  </tr>
-  <tr>
-    <td>1</td>
-    <td>商品名A</td>
-    <td>500</td>
-    <td>8</td>
-    <td>40</td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td>商品名B</td>
-    <td>600</td>
-    <td>10</td>
-    <td>60</td>
-  </tr>
-  <tr>
-    <td>3</td>
-    <td>商品名C</td>
-    <td>250</td>
-    <td>10</td>
-    <td>25</td>
-  </tr>
-</table>
-
-```
-
-### テンプレートのプロパティバインド方法
-* テキストとしてバインドする場合、プロパティを\{\}でくくる
-* HTML要素の属性値とバインドする場合、data-bind属性に記述する
-  * 書式は、「属性名:プロパティ;」※style属性と同じような書式
-  * 属性名を省略した場合、下記の属性名をデフォルト値とする
-     * checkbox、radioの要素の場合、checked
-     * 入力系の要素の場合、value
-     * その他、textContent
-  * 入力系要素の場合、バインドは双方向となる。入力値がプロパティへ反映される
-* リストなど、繰り返し構造を持つプロパティとバインドする場合、template要素のdata-bind属性にプロパティを記述する。
-* on～イベントもdata-bind属性で指定する
-
+### ViewModelクラスとテンプレートの関連付け（バインド）
+* ViewModelクラスのプロパティとテンプレートのテキストもしくは、DOM要素の属性に関連付け（バインド）をする
+* テキストとしてバインドする場合、ViewModelクラスのプロパティの名前を`{}`でくくる
 ```html
 <div>{message}</div>
-<input data-bind="message">
-<button data-bind="disabled:isEmptyMessage; onclick:regist">登録</button>
-
-<select data-bind="selectProductId">
-  <template data-bind="products">
-    <option data-bind="products.*.id">{products.*.name}</option>
-  </template>
-</select>
-
 ```
 
-```js
+* DOM要素の属性とバインドする場合、`data-bind`属性に記述する
+* 書式は、`DOM属性名:プロパティ名`
+```html
+<input data-bind="value:message">
+```
 
+* 複数指定する場合、セミコロン（`;`）で区切る
+```html
+<input type="button" data-bind="value:message; disabled:isIncomplete;">
+```
+
+* DOM属性名を省略した場合、デフォルトの属性名が割り当てられる、デフォルトは要素により異なる
+   * `<input type="checkbox"/>`の場合、デフォルト属性名`checked`
+   * `<input type="radio"/>`の場合、デフォルト属性名`checked`
+   * `<input/>`、`<select/>`、`<textarea/>`の場合、デフォルト属性名`value`
+   * それ以外の場合、デフォルト属性名`textContent`
+```html
+<input type="checkbox" data-bind="isOk"><!-- checked:isOkと同じ -->
+<input type="radio" data-bind="isComplete"><!-- checked:isCompleteと同じ -->
+<input data-bind="message"><!-- value:messageと同じ -->
+<select data-bind="selectedValue"><!-- value:selectedValueと同じ -->
+<textarea data-bind="textValue"><!-- value:textValueと同じ -->
+<div data-bind="message"><!-- textContent:messageと同じ -->
+```
+
+* ViewModelクラスのプロパティとinput系のデフォルト属性とをバインドした場合、双方向にデータは更新される
+```html
+<input data-bind="message"><!-- 入力するとmessageプロパティの値に反映される -->
+```
+
+```JS
 class ViewModel {
-  "message" = "";
-  get "isEmptyMessage"() {
-    return this["message"] ? true : false;
-  }
-  
-  "produts" = [
-    { id:1, name:"商品名A", price:500, tax_parcent:8 },
-    { id:2, name:"商品名B", price:600, tax_parcent:10 },
-    { id:3, name:"商品名C", price:250, tax_parcent:10 },
-  ];
-  "products.*";
-  "products.*.id";
-  "products.*.name";
-  
-  "selectProductId";
-  
-  regist() {
-    // 登録処理
-    // 非同期の場合、async regist()とする
+  "message" = "the quick brown fox";
+}
+```
+
+### ViewModelクラスのプロパティの書き方
+* プロパティの名前をダブルクォーテーション（`"`）で囲む
+* プロパティの名前に使える文字は、英数・アンダーバー（`_`）
+* `__`で始まるプロパティは、privateなプロパティで通常使わない
+```JS
+class ViewModel {
+  "message" = "welcome to re-data-x.js";
+}
+```
+* getを使って、宣言的なプロパティを記述できる
+```html
+{price} × {tax_rate} ＝ {price_including_tax}
+```
+
+```JS
+class ViewModel {
+  "price" = 100;
+  "tax_rate" = 1.10;
+  get "price_including_tax"() {
+    return Math.floor(Number(this.price) * this.tax_rate);
   }
 }
+```
 
+* データがオブジェクトなどの階層構造を持つ場合、ドット記法でプロパティを記述する
+```JS
+class ViewModel {
+  "member" = {
+    name: "Yamada Taro",
+    age: 24,
+  };
+  "member.name";
+  "member.age";
+}
+```
+
+### 繰り返し構造（リスト）の書き方
+#### テンプレート
+* 繰り返す要素を`<template>`で囲む
+* `<template>`にリスト`cities`をバインドする、DOM属性名は指定しない
+* 繰り返す要素にバインドする場合、ドット記法で記したリスト要素のプロパティ`cities.*.name` `cities.*.population` `cities.*.share`を指定する
+```html
+<ul>
+  <template data-bind="cities">
+    <li>{cities.*.name} / {cities.*.population} / {cities.*.share}%</li>
+  </template>
+</ul>
+```
+#### ViewModelクラス
+* リスト要素のプロパティをドット記法で宣言する`cities.*` `cities.*.name` `cities.*.population`
+* リスト要素にも、getを使って、宣言的なプロパティを記述できる`cities.*.share`
+```JS
+class ViewModel {
+  "cities" = [
+    { name: "Tokyo", population: 9717216 },
+    { name: "Osaka", population: 2758013 },
+    { name: "Nagoya", population: 2325946 },
+  ];
+  "cities.*";
+  "cities.*.name";
+  "cities.*.population";
+  get "cities.*.share"() {
+    return (this["cities.*.population"] / this.sumPopulation * 100).toFixed(2);
+  }
+  get "sumPopulation"() {
+    return this.cities.reduce( (sum, city) => sum + city.population, 0);
+  }
+}
+```
+
+#### HTML出力例
+```html
+<ul>
+  <li>Tokyo / 9717216 / 65.65%</li>
+  <li>Osaka / 2758013 / 18.63%</li>
+  <li>Nagoya / 2325946 / 15.71%</li>
+</ul>
 ```
