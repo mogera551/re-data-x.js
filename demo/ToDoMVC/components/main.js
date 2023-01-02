@@ -79,7 +79,6 @@ class ViewModel {
   get "completedItems"() {
     return this.all.filter(completed);
   }
-  "completedItems.*";
   "completedItems.length";
 
   "status" = "all"; // all/active/completed
