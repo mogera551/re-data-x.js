@@ -31,11 +31,11 @@ export default class Properties {
 
   /**
    * 
-   * @param {DefinedProperty[]} definedProperties 
+   * @param {ViewModelProxy} viewModelProxy 
    */
-  constructor(viewModelProxy, definedProperties) {
+  constructor(viewModelProxy) {
     this.viewModelProxy = viewModelProxy;
-    this.definedProperties = definedProperties;
+    this.definedProperties = viewModelProxy.$definedProperties;
     this.propertyByName = new Map(this.definedProperties.map(property => [property.name, property]));
     this.variableProperties = definedProperties.filter(property => property.isVariable);
     this.variableRegExps = this.variableProperties.map(property => property.regexp);
@@ -94,25 +94,28 @@ export default class Properties {
    * @returns {ActiveProperty}
    */
   getActiveProperty(name) {
-    const activeProp = ActiveProperty.getByPath(name);
-    if (activeProp != null) {
-      return this.propertyByName.has(activeProp.definedProp) ? activeProp : null;
-    } else {
-      const definedProp = this.propertyByName.get(name);
-      if (definedProp != null) {
-        return ActiveProperty.createByDefinedProperty(definedProp, []);
-      }
-      for(let i = 0; i < this.variableRegExps.length; i++) {
-        const regexp = this.variableRegExps[i];
-        const indexes = regexp.exec(name)?.slice(1);
-        if (indexes) {
-          const definedProp = this.propertyByRegExp.get(regexp);
-          return ActiveProperty.createByDefinedProperty(definedProp, indexes);
-        }
+    const definedProp = this.propertyByName.get(name);
+    if (definedProp != null) {
+      return ActiveProperty.createByDefinedProperty(definedProp, []);
+    }
+    for(let i = 0; i < this.variableRegExps.length; i++) {
+      const regexp = this.variableRegExps[i];
+      const indexes = regexp.exec(name)?.slice(1);
+      if (indexes) {
+        const definedProp = this.propertyByRegExp.get(regexp);
+        return ActiveProperty.createByDefinedProperty(definedProp, indexes);
       }
     }
     return null;
+  }
+
+
+  
+  getRelativeProperties(name, indexes) {
+    
+
 
   }
+
 
 }
