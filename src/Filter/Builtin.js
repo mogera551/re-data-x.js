@@ -1,14 +1,14 @@
 
-
+const THROUGH = value => () => value;
 export class outputFilters {
-  static localeString = (value, options) => (value != null) ? Number(value).toLocaleString() : "";
-  static fixed        = (value, options) => value?.toFixed(options[0] ?? 0) ?? "";
+  static localeString = (value, options) => { const num = parseFloat(value); return !isNaN(num) ? num.toLocaleString() : "" };
+  static fixed        = (value, options) => { const num = parseFloat(value); return !isNaN(num) ? num.toFixed(options[0] ?? 0) : "" };
   static styleDisplay = (value, options) => value ? (options[0] ?? "") : "none";
   static truthy       = (value, options) => value ? true : false;
   static falsey       = (value, options) => !value ? true : false;
   static not          = this.falsey;
-  static upperCase    = (value, options) => value?.toUpperCase() ?? "";
-  static lowerCase    = (value, options) => value?.toLowerCase() ?? "";
+  static upperCase    = (value, options) => value?.toUpperCase ? value.toUpperCase() : "";
+  static lowerCase    = (value, options) => value?.toLowerCase ? value.toLowerCase() : "";
   static eq           = (value, options) => value == options[0];
   static ne           = (value, options) => value != options[0];
   static lt           = (value, options) => Number(value) < Number(options[0]);
