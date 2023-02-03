@@ -198,20 +198,22 @@ export default class {
      * @param {any} value 
      */
     const createDesc = (name, value = null) => {
+      let desc;
       if (setOfGlobalProps.has(name)) {
-        descByProp.set(name, createDefaultGlobalPrimitiveDesc(name));
+        desc = createDefaultGlobalPrimitiveDesc(name);
       } else {
         const definedProperty = DefinedProperty.create(name);
         if (!definedProperty.isPrimitive) {
-          descByProp.set(name, createDefaultDesc(component, definedProperty));
+          desc = createDefaultDesc(component, definedProperty);
         } else {
-          descByProp.set(name, createDefaultPrimitiveDesc(component, name));
+          desc = createDefaultPrimitiveDesc(component, name);
           if (!setOfPrivateProps.has(definedProperty.privateName)) {
             Object.defineProperty(viewModel, definedProperty.privateName, createPrivateDesc(value));
             setOfPrivateProps.add(definedProperty.privateName);
           }
         }
       }
+      return desc;
     };
     
     // ViewModelオブジェクトのプロパティを取得
@@ -223,7 +225,7 @@ export default class {
         importProps.push(prop);
         continue;
       }
-      createDesc(prop, value);
+      descByProp.set(prop, createDesc(prop, value));
     }
 
     // ViewModelのアクセサのthisをViewModelProxyにする
@@ -231,7 +233,11 @@ export default class {
       if (prop === "constructor") continue;
       if (utils.isFunction(desc.value)) continue;
 
-      const curDesc = descByProp.get(prop) ?? createDesc(prop);
+      let curDesc = descByProp.get(prop);
+      if (typeof curDesc === "undefined") {
+        curDesc = createDesc(prop);
+        descByProp.set(prop, curDesc);
+      }
 /*
       if (!descByProp.has(prop)) {
         createDesc(prop);
