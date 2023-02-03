@@ -178,11 +178,25 @@ export default class {
      * @type {Map<string,PropertyDescriptor>}
      */
     const descByProp = new Map;
+    /**
+     * @type {Set<string>}
+     */
     const setOfPrivateProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("__")));
+    /**
+     * @type {Set<string>}
+     */
     const setOfContextProps = new Set(Object.keys(viewModel).filter(prop => prop[0] === "$" && prop[1] !== "$"));
+    /**
+     * @type {Set<string>}
+     */
     const setOfGlobalProps = new Set(Object.keys(viewModel).filter(prop => prop.startsWith("$$")));
     const importProps = [];
 
+    /**
+     * 
+     * @param {string} name 
+     * @param {any} value 
+     */
     const createDesc = (name, value = null) => {
       if (setOfGlobalProps.has(name)) {
         descByProp.set(name, createDefaultGlobalPrimitiveDesc(name));
@@ -217,10 +231,13 @@ export default class {
       if (prop === "constructor") continue;
       if (utils.isFunction(desc.value)) continue;
 
+      const curDesc = descByProp.get(prop) ?? createDesc(prop);
+/*
       if (!descByProp.has(prop)) {
         createDesc(prop);
       }
       const curDesc = descByProp.get(prop);
+*/
       if (desc.get) {
         curDesc.get = () => applyGetter(component)(desc.get)();
       }
@@ -229,15 +246,24 @@ export default class {
       }
     }
 
+    /**
+     * @type {String[]}
+     */
     const removeProps = Object.keys(viewModel).filter(prop => !setOfPrivateProps.has(prop) && !setOfContextProps.has(prop));
     removeProps.forEach(prop => delete viewModel[prop]);
     Array.from(descByProp.entries()).forEach(([prop, desc]) => Object.defineProperty(viewModel, prop, desc));
+    /**
+     * @type {String[]}
+     */
     const publicProps = Object.keys(viewModel).concat(importProps);
+    /**
+     * @type {DefinedProperty[]}
+     */
     const definedProperties = publicProps.map(name => DefinedProperty.create(name))
       .sort((p1, p2) => p1.level === p2.level ? p1.paths.length - p2.paths.length : p1.level - p2.level);
     // 配列と思われるプロパティの取得
     const arrayProps = publicProps.filter(prop => `${prop}.*` in viewModel);
-    // 関係のあるプロパティ
+    // 関係のあるプロパティ(配列は含めない)
     const setOfRelativePropsByProp = new Map;
     definedProperties
       .reduce((map, prop) => {

@@ -20,6 +20,9 @@ const getNodeRoute = node => {
   return routeIndexes;
 };
 
+const isComment = node => node instanceof Comment && node.textContent[0] === "@" && node.textContent[1] === "@";
+const getCommentNodes = node => Array.from(node.childNodes).flatMap(node => getCommentNodes(node).concat(isComment(node) ? node : null)).filter(node => node);
+
 export default class NodeSelector {
   /**
    * @type {Map<HTMLTemplateElement, integer[][]>}
@@ -39,55 +42,29 @@ export default class NodeSelector {
    */
   static select(parentComponent, documentRoot, template, indexes = []) {
     /**
-     * @type {BoundNode[]}
+     * @type {Node[]}
      */
-    const boundNodes = [];
+    let nodes;
 
     if (this.listOfRouteIndexesByTemplate.has(template)) {
       // キャッシュがある場合
       // querySelectorAllをせずにNodeの位置を特定できる
       const listOfRouteIndexes = this.listOfRouteIndexesByTemplate.get(template);
-      const nodes = listOfRouteIndexes.map(routeIndexes => routeIndexes.reduce((node, routeIndex) => node.childNodes[routeIndex], documentRoot));
-
-      // BoundNodeを作成する
-      boundNodes.push(...nodes.map(node => Factory.create(parentComponent, node, indexes)));
+      nodes = listOfRouteIndexes.map(routeIndexes => routeIndexes.reduce((node, routeIndex) => node.childNodes[routeIndex], documentRoot));
     } else {
-      /**
-       * @type {Node[]}
-       */
-      const nodes = [];
-      /**
-       * @type {integer[][]}
-       */
-      const listOfRouteIndexes = [];
-
-      /**
-       * @type {HTMLElement[]}
-       */
-      const elements = Array.from(documentRoot.querySelectorAll(SELECTOR));
+      // data-bindを持つノード、コメントのノードを取得しリストを作成する
+      nodes = Array.from(documentRoot.querySelectorAll(SELECTOR)).concat(getCommentNodes(documentRoot));
+  
       // ルートから、nodeのインデックスの順番をキャッシュに覚えておく
-      listOfRouteIndexes.push(...elements.map(element => getNodeRoute(element)));
-
-      /**
-       * @type {Comment[]}
-       */
-      const commentNodes = [];
-      const walk_ = (node) => node.childNodes.forEach(node => {
-        node instanceof Comment && node.textContent[0] === "@" && node.textContent[1] === "@" && commentNodes.push(node);
-        walk_(node);
-      });
-      walk_(documentRoot);
-      listOfRouteIndexes.push(...commentNodes.map(node => getNodeRoute(node)));
-  
-      this.listOfRouteIndexesByTemplate.set(template, listOfRouteIndexes);
-      nodes.push(...elements);
-      nodes.push(...commentNodes);
-  
-      // BoundNodeを作成する
-      boundNodes.push(...nodes.map(node => Factory.create(parentComponent, node, indexes)));
+      this.listOfRouteIndexesByTemplate.set(template, nodes.map(node => getNodeRoute(node)));
     }
+    /**
+     * @type {BoundNode[]}
+     */
+    // ノードからバインドノードを生成
+    const boundNodes = nodes.map(node => Factory.create(parentComponent, node, indexes));
     // バインドノードに対してbind()を実行する
-    boundNodes.forEach(node => node.bind());
+    boundNodes.forEach(boundNode => boundNode.bind());
     return boundNodes;
   }
 }
