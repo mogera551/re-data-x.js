@@ -11,7 +11,7 @@ export default class BoundText extends BoundNode {
     // コメントノードをテキストノードに入れ替える
     // this.nodeを入れ替えるので注意
     const commentNode = this.node;
-    const bindText = commentNode.textContent.slice(2);
+    const bindText = commentNode.textContent.slice(2); // @@をスキップ
     this.node = document.createTextNode("");
     commentNode.parentNode.replaceChild(this.node, commentNode);
 

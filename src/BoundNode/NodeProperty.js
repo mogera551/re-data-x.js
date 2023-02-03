@@ -28,10 +28,8 @@ export default class NodeProperty {
    * @returns {NodeProperty}
    */
   static create(name) {
-    let nodeProperty;
-    if (this.cacheNodePropertyByName.has(name)) {
-      nodeProperty = this.cacheNodePropertyByName.get(name);
-    } else {
+    let nodeProperty = this.cacheNodePropertyByName.get(name);
+    if (typeof nodeProperty === "undefined") {
       nodeProperty = new NodeProperty(name);
       this.cacheNodePropertyByName.set(name, nodeProperty);
     }
